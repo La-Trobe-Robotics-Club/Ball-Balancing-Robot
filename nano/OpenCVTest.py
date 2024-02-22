@@ -1,5 +1,9 @@
 import cv2
 import numpy as np
+# Min and max radius of circles
+# If set to 0, all circles detected regardless of size
+MIN_RADIUS = 0
+MAX_RADIUS = 0
 
 def detect_red_circles(frame):
     # Convert frame to HSV color space
@@ -24,7 +28,7 @@ def detect_red_circles(frame):
     
     # Detect circles in the combined mask
     circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 20,
-                               param1=50, param2=30, minRadius=0, maxRadius=0)
+                               param1=50, param2=30, minRadius=MIN_RADIUS, maxRadius=MAX_RADIUS)
     
     center = None
     if circles is not None:
@@ -53,6 +57,9 @@ while True:
     # Break loop and close window with 'q' key
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+    # Destroy window if X aka close window button in window bar pressed
+    if cv2.getWindowProperty('Frame',cv.WND_PROP_VISIBLE) < 1:        
+        break   
 
 # Release the video capture and close all windows
 cap.release()
