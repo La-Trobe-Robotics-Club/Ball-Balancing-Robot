@@ -1,6 +1,11 @@
 #define ENCODER_DO_NOT_USE_INTERRUPTS
 #include <Encoder.h>
 
+//TODO
+class PID {
+  
+};
+
 class Motor {
   public:
     Motor(uint8_t port_EN_temp, uint8_t port_PH_temp, uint8_t port_SLP_temp, uint8_t port_encoder1, uint8_t port_encoder2) : encoder(port_encoder1, port_encoder2) {
@@ -45,6 +50,7 @@ Motor center(5,4,12,A0,A1);
 Motor left  (3,2,8,A2,A3);
 Motor right (6,7,13,A4,A5);
 
+// Has to be run every 4ms or less for reliable read (.5ms max execution time) Maximum frequency of encoder change is just under 4.96ms if motor is at max speed
 void update_all_positions() {
   center.update_position();
   left  .update_position();
