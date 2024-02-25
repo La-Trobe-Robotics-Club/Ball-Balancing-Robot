@@ -50,6 +50,9 @@ class Motor {
       }
       analogWrite(port_EN, speed);
     }
+    void off() {
+      analogWrite(port_EN, 0);
+    }
   private:
     uint8_t port_EN;
     uint8_t port_PH;
@@ -60,28 +63,107 @@ class Motor {
     PID pid;
 };
 
+struct motor_targets {
+  uint8_t center = 0;
+  uint8_t left = 0;
+  uint8_t right = 0;
+};
+
 Motor center(5,4,12,A0,A1,1.0,0.0,0.0);
 Motor left  (3,2, 8,A2,A3,1.0,0.0,0.0);
 Motor right (6,7,13,A4,A5,1.0,0.0,0.0);
 
+unsigned long update_start = 0;
+unsigned long update_finish = 0;
+unsigned long max_time = 4000;
+unsigned long time_taken = 0;
 // Has to be run every 4ms or less for reliable read (.5ms max execution time) Maximum frequency of encoder change is just under 4.96ms if motor is at max speed
-void update_all_positions() {
+// returns true if error
+bool update_all_positions() {
+  time_taken = micros() - update_start + micros() - update_finish;
+  // check it hasn't been too long since encoders were read
+  if (time_taken > max_time) {
+    return true;
+  }
+  update_start = micros();
   center.update_position();
   left  .update_position();
   right .update_position();
+  update_finish = micros();
 }
+
+void turn_off_all_motors() {
+  center.off();
+  left  .off();
+  right .off();
+}
+
+void set_motor_targets(struct motor_targets *targets) {
+  center.set_target(targets->center);
+  left  .set_target(targets->left);
+  right .set_target(targets->right);
+}
+
+void check_encoder_time() {
+  if (update_all_positions()) {
+    while(true) {
+      Serial.println("ERROR: Too long to read encoders");
+      turn_off_all_motors();
+    }
+  }
+}
+
+class SerialCustom {
+  public:
+    void setup() {
+      Serial.begin(9600);
+    }
+    void read(struct motor_targets *targets) {
+        uint8_t serial = Serial.read();
+        Serial.write(serial);
+        switch(serial_count) {
+          case 0:
+            targets->center = serial;
+            serial_count = 1;
+            break;
+          case 1:
+            targets->left = serial;
+            serial_count = 2;
+            break;
+          case 2:
+            targets->right = serial;
+            serial_count = 0;
+            break;
+          default:
+            while(true) {
+              Serial.println("ERROR: serial_count not in bounds");
+              turn_off_all_motors();
+            break;
+            }
+            
+        }
+    }
+  private:
+    uint8_t serial_count;
+};
+
+SerialCustom serial;
 
 void setup() {
-  Serial.setTimeout(1000);
+  serial.setup();
 }
 
+struct motor_targets targets;
+struct motor_targets* targets_pointer = &targets;
 void loop() {
-  update_all_positions();
-  // size_t = Serial.readBytesUntil("|", byte, 3); TODO
-  update_all_positions();
+  check_encoder_time();
+  serial.read(targets_pointer);
+  check_encoder_time();
+  set_motor_targets(targets_pointer);
+  check_encoder_time();
   center.drive();
-  update_all_positions();
+  check_encoder_time();
   left.  drive();
-  update_all_positions();
+  check_encoder_time();
   right. drive();
 }
