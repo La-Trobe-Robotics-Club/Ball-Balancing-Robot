@@ -1,5 +1,15 @@
 import cv2
 import numpy as np
+import serial
+
+# Serial config
+ser = serial.Serial('/dev/tty0', timeout = 1)
+center_motor = 0
+left_motor = 0
+right_motor = 0
+serial_count = 0
+serial_sent = 256
+serial_recieved = 256
 
 # Min and max radius of circles
 MIN_RADIUS = 0
@@ -54,6 +64,7 @@ def detect_red_circles(frame, lower_red, upper_red):
 # Start capturing video from the first camera
 cap = cv2.VideoCapture(0)
 
+# Main loop
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -86,9 +97,33 @@ while True:
     if cv2.getWindowProperty('Frame', cv2.WND_PROP_VISIBLE) < 1:
         break
 
+    # Output to Serial
+    serial_recieved = ser.read()
+    if serial_sent == serial_recieved:
+        serial_recieved = 256
+        match serial_count:
+            case 0:
+                ser.write(center_motor)
+                serial_sent = center_motor
+                serial_count = 1
+            case 1:
+                ser.write(left_motor)
+                serial_sent = left_motor
+                serial_count = 2
+            case 2:
+                ser.write(right_motor)
+                serial_sent = right_motor
+                serial_count = 0
+            case _:
+                print("ERROR: serial_count out of bounds")
+                # TODO: Error here
+
+
+
 # Release the video capture and close all windows
 cap.release()
 cv2.destroyAllWindows()
+ser.close()
 #low hue: 80
 #high hue: 179
 #low sat: 66
