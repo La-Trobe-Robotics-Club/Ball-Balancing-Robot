@@ -2,6 +2,10 @@
 
 
 ## FOR DEVS
+### Arduino
+1. Open Arduino .ino file in the Arduino IDE.
+2. Select Arduino UNO board.
+3. Install Encoder Library
 ### Serial
 The arduino expects to recieve a byte for each motor in this order:
 1. center motor
