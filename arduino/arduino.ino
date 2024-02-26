@@ -1,7 +1,74 @@
-// There are not enough pins with interrupts to capture all the quadrature encoders
-#define ENCODER_DO_NOT_USE_INTERRUPTS
-// Encoder library using arduino IDE library manager
-#include <Encoder.h>
+class Encoder {
+  public:
+    Encoder(uint8_t port1_temp, uint8_t port2_temp) {
+      pinMode(port1_temp, INPUT);
+      pinMode(port2_temp, INPUT);
+      current_port1 = digitalRead(port1_temp);
+      current_port2 = digitalRead(port2_temp);
+      last_port1 = digitalRead(port1_temp);
+      last_port2 = digitalRead(port2_temp);
+      port1 = port1_temp;
+      port2 = port2_temp;
+    }
+    long read() {
+      this->current_port1 = digitalRead(this->port1);
+      this->current_port2 = digitalRead(this->port2);
+      if (this->current_port1 != this->last_port1) {
+        this->change_port1 = true;
+        if (this->current_port2) {
+          if (this->current_port1) {
+            this->position += 1;
+          } else {
+            this->position -= 1;
+          }
+        } else {
+        if (this->current_port1) {
+            this->position -= 1;
+          } else {
+            this->position += 1;
+          }
+        }
+      } 
+      if (this->current_port2 != this->last_port2) {
+        this->change_port2 = true;
+        if (this->current_port1) {
+          if (this->current_port2) {
+            this->position -= 1;
+          } else {
+            this->position += 1;
+          }
+        } else {
+        if (this->current_port2) {
+            this->position += 1;
+          } else {
+            this->position -= 1;
+          }
+        }
+      }
+      if (this->change_port1 && this->change_port2) {
+        while(true) {
+          Serial.println("ERROR: Encoders didn't update in time (both states changed)");
+          // turn_off_all_motors(); // TODO
+          delay(500);
+        }
+      }
+      this->last_port1 = this->current_port1;
+      this->last_port2 = this->current_port2;
+      this->change_port1 = false;
+      this->change_port2 = false;
+      return this->position;
+    }
+  private:
+    uint8_t port1;
+    uint8_t port2;
+    bool current_port1;
+    bool current_port2;
+    bool last_port1;
+    bool last_port2;
+    bool change_port1;
+    bool change_port2;
+    long position = 0;
+};
 
 class PID {
   public:
@@ -41,7 +108,7 @@ class Motor {
     }
     void drive() {
       digitalWrite(port_SLP, HIGH);
-      long speed = this->pid.output((float)(target-position));
+      long speed = this->pid.output((float)(this->target-this->position));
       if (speed >= 0) {
         digitalWrite(port_PH, LOW);
       }
@@ -52,6 +119,12 @@ class Motor {
     }
     void off() {
       analogWrite(port_EN, 0);
+    }
+    long get_position() {
+      return this->position;
+    }
+    long get_target() {
+      return this->target;
     }
   private:
     uint8_t port_EN;
@@ -69,18 +142,18 @@ struct motor_targets {
   uint8_t right = 0;
 };
 
-Motor center(5,4,12,A0,A1,1.0,0.0,0.0);
-Motor left  (3,2, 8,A2,A3,1.0,0.0,0.0);
-Motor right (6,7,13,A4,A5,1.0,0.0,0.0);
+Motor center(5,4,12,A2,A3,10.0,0.0,0.0);
+Motor left  (6,7,13,A4,A5,10.0,0.0,0.0);
+Motor right (3,2, 8,A0,A1,10.0,0.0,0.0);
 
 unsigned long update_start = 0;
-unsigned long update_finish = 0;
-unsigned long max_time = 4000;
+//unsigned long update_finish = 0;
+unsigned long max_time = 400; // any longer and it can misread position-
 unsigned long time_taken = 0;
-// Has to be run every 4ms or less for reliable read (.5ms max execution time) Maximum frequency of encoder change is just under 4.96ms if motor is at max speed
+// Has to be run 2480 times a second to make sure no encoders are missed
 // returns true if error
 bool update_all_positions() {
-  time_taken = micros() - update_start + micros() - update_finish;
+  time_taken = micros() - update_start /*+ update_finish - update_start*/;
   // check it hasn't been too long since encoders were read
   if (time_taken > max_time) {
     return true;
@@ -89,7 +162,8 @@ bool update_all_positions() {
   center.update_position();
   left  .update_position();
   right .update_position();
-  update_finish = micros();
+  //update_finish = micros();
+  return false;
 }
 
 void turn_off_all_motors() {
@@ -98,17 +172,27 @@ void turn_off_all_motors() {
   right .off();
 }
 
+uint8_t motor_scalar = 23; //23945.84/4/255
 void set_motor_targets(struct motor_targets *targets) {
-  center.set_target(targets->center);
-  left  .set_target(targets->left);
-  right .set_target(targets->right);
+  center.set_target(int(targets->center * motor_scalar));
+  left  .set_target(int(targets->left * motor_scalar));
+  right .set_target(int(targets->right * motor_scalar));
 }
 
 void check_encoder_time() {
   if (update_all_positions()) {
     while(true) {
-      Serial.println("ERROR: Too long to read encoders");
       turn_off_all_motors();
+      Serial.println("");
+      Serial.print("ERROR: Too long to read encoders, time: ");
+      Serial.println(time_taken);
+      Serial.print("Positions: ");
+      Serial.print(center.get_position());
+      Serial.print(" ");
+      Serial.print(left.get_position());
+      Serial.print(" ");
+      Serial.println(right.get_position());
+      delay(500);
     }
   }
 }
@@ -138,6 +222,7 @@ class SerialCustom {
             while(true) {
               Serial.println("ERROR: serial_count not in bounds");
               turn_off_all_motors();
+              delay(500);
             break;
             }
             
@@ -151,13 +236,48 @@ SerialCustom serial;
 
 void setup() {
   serial.setup();
+  update_start = micros();
+  //update_finish = micros();
+  Serial.println("STARTED");
 }
 
 struct motor_targets targets;
 struct motor_targets* targets_pointer = &targets;
 void loop() {
   check_encoder_time();
-  serial.read(targets_pointer);
+  if (Serial.availableForWrite() == 63) {
+    Serial.print("Positions: ");
+    check_encoder_time();
+    Serial.print(center.get_position());
+    check_encoder_time();
+    Serial.print(" ");
+    check_encoder_time();
+    Serial.print(left.get_position());
+    check_encoder_time();
+    Serial.print(" ");
+    check_encoder_time();
+    Serial.print(right.get_position());
+    check_encoder_time();
+    Serial.print(" Targets: ");
+    check_encoder_time();
+    Serial.print(center.get_target());
+    check_encoder_time();
+    Serial.print(" ");
+    check_encoder_time();
+    Serial.print(left.get_target());
+    check_encoder_time();
+    Serial.print(" ");
+    check_encoder_time();
+    Serial.println(right.get_target());
+  }
+  check_encoder_time();
+  //Serial.println(time_taken);
+  if (Serial.availableForWrite() == 63) {
+  //serial.read(targets_pointer);
+  }
+  targets_pointer->center = 0;
+  targets_pointer->left = 0;
+  targets_pointer->right = 255;
   check_encoder_time();
   set_motor_targets(targets_pointer);
   check_encoder_time();
