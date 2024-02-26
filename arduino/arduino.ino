@@ -172,7 +172,7 @@ void turn_off_all_motors() {
   right .off();
 }
 
-uint8_t motor_scalar = 23; //23945.84/4/255
+uint8_t motor_scalar = 12; //23945.84/8/255 45 degrees
 void set_motor_targets(struct motor_targets *targets) {
   center.set_target(int(targets->center * motor_scalar));
   left  .set_target(int(targets->left * motor_scalar));
@@ -203,19 +203,21 @@ class SerialCustom {
       Serial.begin(9600);
     }
     void read(struct motor_targets *targets) {
-        uint8_t serial = Serial.read();
+      if (Serial.availableForWrite() == 63 && Serial.available() == 1) {
+        int serial = Serial.read();
+        // TODO: Check if read returns -1
         Serial.write(serial);
         switch(serial_count) {
           case 0:
-            targets->center = serial;
+            targets->center = (uint8_t)serial;
             serial_count = 1;
             break;
           case 1:
-            targets->left = serial;
+            targets->left = (uint8_t)serial;
             serial_count = 2;
             break;
           case 2:
-            targets->right = serial;
+            targets->right = (uint8_t)serial;
             serial_count = 0;
             break;
           default:
@@ -223,10 +225,17 @@ class SerialCustom {
               Serial.println("ERROR: serial_count not in bounds");
               turn_off_all_motors();
               delay(500);
-            break;
             }
-            
+            break;
         }
+      }
+      if (Serial.available() > 1) {
+        while(true) {
+              Serial.println("ERROR: Too much serial data recieved");
+              turn_off_all_motors();
+              delay(500);
+            }
+      }
     }
   private:
     uint8_t serial_count;
@@ -243,41 +252,45 @@ void setup() {
 
 struct motor_targets targets;
 struct motor_targets* targets_pointer = &targets;
+int ran = 0;
 void loop() {
+//  check_encoder_time();
+//  if (Serial.availableForWrite() == 63) {
+//    Serial.print("Positions: ");
+//    check_encoder_time();
+//    Serial.print(center.get_position());
+//    check_encoder_time();
+//    Serial.print(" ");
+//    check_encoder_time();
+//    Serial.print(left.get_position());
+//    check_encoder_time();
+//    Serial.print(" ");
+//    check_encoder_time();
+//    Serial.print(right.get_position());
+//    check_encoder_time();
+//    Serial.print(" Targets: ");
+//    check_encoder_time();
+//    Serial.print(center.get_target());
+//    check_encoder_time();
+//    Serial.print(" ");
+//    check_encoder_time();
+//    Serial.print(left.get_target());
+//    check_encoder_time();
+//    Serial.print(" ");
+//    check_encoder_time();
+//    Serial.println(right.get_target());
+//  }
   check_encoder_time();
-  if (Serial.availableForWrite() == 63) {
-    Serial.print("Positions: ");
-    check_encoder_time();
-    Serial.print(center.get_position());
-    check_encoder_time();
-    Serial.print(" ");
-    check_encoder_time();
-    Serial.print(left.get_position());
-    check_encoder_time();
-    Serial.print(" ");
-    check_encoder_time();
-    Serial.print(right.get_position());
-    check_encoder_time();
-    Serial.print(" Targets: ");
-    check_encoder_time();
-    Serial.print(center.get_target());
-    check_encoder_time();
-    Serial.print(" ");
-    check_encoder_time();
-    Serial.print(left.get_target());
-    check_encoder_time();
-    Serial.print(" ");
-    check_encoder_time();
-    Serial.println(right.get_target());
-  }
-  check_encoder_time();
-  //Serial.println(time_taken);
-  if (Serial.availableForWrite() == 63) {
-  //serial.read(targets_pointer);
-  }
-  targets_pointer->center = 0;
-  targets_pointer->left = 0;
-  targets_pointer->right = 255;
+  serial.read(targets_pointer);
+//  check_encoder_time();
+//  int test = 23;
+//  if (Serial.availableForWrite() == 63 && ran < 2) {
+//    Serial.write(test);
+//    ran += 1;
+//  }
+//  targets_pointer->center = 0;
+//  targets_pointer->left = 0;
+//  targets_pointer->right = 0;
   check_encoder_time();
   set_motor_targets(targets_pointer);
   check_encoder_time();
