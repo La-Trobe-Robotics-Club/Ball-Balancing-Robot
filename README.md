@@ -1,7 +1,8 @@
 # Orientation-week-showcase-project
 
 ## OpenCV controls
-There's a manual mode and automatic mode to get the centerpoint and radius of the disk. Default is manual
+
+You can control the maximum tilt of the platform. The default value is 5 degrees.
 
 Hotkeys (Press in the actual openCV window)
 
@@ -9,7 +10,7 @@ Hotkeys (Press in the actual openCV window)
 
 ### R: Reset disc position whilst in normal mode (not calibration or manual)
 
-### P: toggle print output of motor force, ball angle and force multiplier
+### P: toggle print output of motor forces and tilt multiplier to console
 
 ### S: toggle serial output of motor force to arduino
 
@@ -18,6 +19,9 @@ When in calibration mode, press c again to start regular mode (start getting the
 Doesn't work in manual mode (nothing to calibrate as disc positon/radius set manually)
 
 ### M: Toggle manual mode, set the position and radius of the disc manually in the Trackbars Red window
+There's a manual mode and automatic mode (via detecting circle of the disc color) to get the centerpoint and radius of the disk. Default is manual.
+
+In manual mode, set the position and radius of the disc using the Trackbars.
 
 ## FOR DEVS
 ### Arduino

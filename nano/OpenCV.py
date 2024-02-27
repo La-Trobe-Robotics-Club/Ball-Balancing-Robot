@@ -101,7 +101,7 @@ else:
 ret, frame = cap.read()
 cv2.imshow('Frame', frame)
 # Create a trackbar to set the maximum angle of tilt 
-cv2.createTrackbar('MaxTilt', 'Frame', 45, 45, nothing)
+cv2.createTrackbar('MaxTilt', 'Frame', 5, 45, nothing)
 # Create a set of trackbars for manual adjustment of center
 cv2.createTrackbar('ManPosX', 'Frame', 443, 800, nothing)
 cv2.createTrackbar('ManPosY', 'Frame', 221, 450, nothing)
@@ -263,7 +263,7 @@ while True:
                 left_motor = int(motor_outputs[1])
                 right_motor = int(motor_outputs[2])
                 if print_output:
-                    print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4} multiplier:{tilt_multiplier:.2f}")
+                    print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4} tilt multiplier:{tilt_multiplier:.2f}")
                 if serial_output:
                     # Uncomment to make sure platform doesn't move if testing camera
                     center_motor = 0
