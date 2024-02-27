@@ -1,54 +1,63 @@
 import cv2
 import numpy as np
+import platform
 
 def nothing(x):
     pass
 
-# Create windows with trackbars for HSV adjustment for the red disc
-cv2.namedWindow('Trackbars Red')
-cv2.createTrackbar('Lower Hue', 'Trackbars Red', 0, 179, nothing)
-cv2.createTrackbar('Upper Hue', 'Trackbars Red', 179, 179, nothing)
-cv2.createTrackbar('Lower Saturation', 'Trackbars Red', 100, 255, nothing)
-cv2.createTrackbar('Upper Saturation', 'Trackbars Red', 255, 255, nothing)
-cv2.createTrackbar('Lower Value', 'Trackbars Red', 100, 255, nothing)
-cv2.createTrackbar('Upper Value', 'Trackbars Red', 255, 255, nothing)
-cv2.createTrackbar('Min Radius', 'Trackbars Red', 0, 150, nothing)
-cv2.createTrackbar('Max Radius', 'Trackbars Red', 0, 150, nothing)
-
-# Create another set of trackbars for HSV adjustment for the yellow ball
-cv2.namedWindow('Trackbars Yellow')
-cv2.createTrackbar('Lower Hue', 'Trackbars Yellow', 25, 179, nothing)  # Adjusted for fluorescent yellow
-cv2.createTrackbar('Upper Hue', 'Trackbars Yellow', 40, 179, nothing)
-cv2.createTrackbar('Lower Saturation', 'Trackbars Yellow', 150, 255, nothing)
-cv2.createTrackbar('Upper Saturation', 'Trackbars Yellow', 255, 255, nothing)
-cv2.createTrackbar('Lower Value', 'Trackbars Yellow', 150, 255, nothing)
-cv2.createTrackbar('Upper Value', 'Trackbars Yellow', 255, 255, nothing)
-cv2.createTrackbar('Min Radius', 'Trackbars Yellow', 0, 150, nothing)
-cv2.createTrackbar('Max Radius', 'Trackbars Yellow', 0, 150, nothing)
-
-
-# Mark's colors, red and black, for testing purposes only, red and yellow wasn't working
-# # # Create windows with trackbars for HSV adjustment for the red circle
+# # Create windows with trackbars for HSV adjustment for the red disc
 # cv2.namedWindow('Trackbars Red')
+# cv2.createTrackbar('ManPosX', 'Trackbars Red', 0, 179, nothing)
+# cv2.createTrackbar('ManPosY', 'Trackbars Red', 179, 179, nothing)
+# cv2.createTrackbar('ManRadius', 'Trackbars Red', 179, 179, nothing)
+
 # cv2.createTrackbar('Lower Hue', 'Trackbars Red', 0, 179, nothing)
 # cv2.createTrackbar('Upper Hue', 'Trackbars Red', 179, 179, nothing)
 # cv2.createTrackbar('Lower Saturation', 'Trackbars Red', 100, 255, nothing)
 # cv2.createTrackbar('Upper Saturation', 'Trackbars Red', 255, 255, nothing)
 # cv2.createTrackbar('Lower Value', 'Trackbars Red', 100, 255, nothing)
 # cv2.createTrackbar('Upper Value', 'Trackbars Red', 255, 255, nothing)
-# cv2.createTrackbar('Min Radius', 'Trackbars Red', 188, 300, nothing)
-# cv2.createTrackbar('Max Radius', 'Trackbars Red', 204, 300, nothing)
+# cv2.createTrackbar('Min Radius', 'Trackbars Red', 0, 150, nothing)
+# cv2.createTrackbar('Max Radius', 'Trackbars Red', 0, 150, nothing)
 
-# # Create another set of trackbars for HSV adjustment for the black circle
+# # Create another set of trackbars for HSV adjustment for the yellow ball
 # cv2.namedWindow('Trackbars Yellow')
-# cv2.createTrackbar('Lower Hue', 'Trackbars Yellow', 0, 179, nothing)  # Adjusted for fluorescent yellow
-# cv2.createTrackbar('Upper Hue', 'Trackbars Yellow', 179, 179, nothing)
-# cv2.createTrackbar('Lower Saturation', 'Trackbars Yellow', 0, 255, nothing)
+# cv2.createTrackbar('Lower Hue', 'Trackbars Yellow', 25, 179, nothing)  # Adjusted for fluorescent yellow
+# cv2.createTrackbar('Upper Hue', 'Trackbars Yellow', 40, 179, nothing)
+# cv2.createTrackbar('Lower Saturation', 'Trackbars Yellow', 150, 255, nothing)
 # cv2.createTrackbar('Upper Saturation', 'Trackbars Yellow', 255, 255, nothing)
-# cv2.createTrackbar('Lower Value', 'Trackbars Yellow', 0, 255, nothing)
-# cv2.createTrackbar('Upper Value', 'Trackbars Yellow', 109, 255, nothing)
-# cv2.createTrackbar('Min Radius', 'Trackbars Yellow', 47, 150, nothing)
-# cv2.createTrackbar('Max Radius', 'Trackbars Yellow', 72, 150, nothing)
+# cv2.createTrackbar('Lower Value', 'Trackbars Yellow', 150, 255, nothing)
+# cv2.createTrackbar('Upper Value', 'Trackbars Yellow', 255, 255, nothing)
+# cv2.createTrackbar('Min Radius', 'Trackbars Yellow', 0, 150, nothing)
+# cv2.createTrackbar('Max Radius', 'Trackbars Yellow', 0, 150, nothing)
+
+
+# Mark's colors, red and black, for testing purposes only, red and yellow wasn't working
+# # # Create windows with trackbars for HSV adjustment for the red circle
+cv2.namedWindow('Trackbars Red')
+cv2.createTrackbar('ManPosX', 'Trackbars Red', 0, 500, nothing)
+cv2.createTrackbar('ManPosY', 'Trackbars Red', 0, 500, nothing)
+cv2.createTrackbar('ManRadius', 'Trackbars Red', 0, 500, nothing)
+
+cv2.createTrackbar('Lower Hue', 'Trackbars Red', 0, 179, nothing)
+cv2.createTrackbar('Upper Hue', 'Trackbars Red', 179, 179, nothing)
+cv2.createTrackbar('Lower Saturation', 'Trackbars Red', 100, 255, nothing)
+cv2.createTrackbar('Upper Saturation', 'Trackbars Red', 255, 255, nothing)
+cv2.createTrackbar('Lower Value', 'Trackbars Red', 100, 255, nothing)
+cv2.createTrackbar('Upper Value', 'Trackbars Red', 255, 255, nothing)
+cv2.createTrackbar('Min Radius', 'Trackbars Red', 188, 300, nothing)
+cv2.createTrackbar('Max Radius', 'Trackbars Red', 204, 300, nothing)
+
+# Create another set of trackbars for HSV adjustment for the black circle
+cv2.namedWindow('Trackbars Yellow')
+cv2.createTrackbar('Lower Hue', 'Trackbars Yellow', 0, 179, nothing)  # Adjusted for fluorescent yellow
+cv2.createTrackbar('Upper Hue', 'Trackbars Yellow', 179, 179, nothing)
+cv2.createTrackbar('Lower Saturation', 'Trackbars Yellow', 0, 255, nothing)
+cv2.createTrackbar('Upper Saturation', 'Trackbars Yellow', 255, 255, nothing)
+cv2.createTrackbar('Lower Value', 'Trackbars Yellow', 0, 255, nothing)
+cv2.createTrackbar('Upper Value', 'Trackbars Yellow', 109, 255, nothing)
+cv2.createTrackbar('Min Radius', 'Trackbars Yellow', 47, 150, nothing)
+cv2.createTrackbar('Max Radius', 'Trackbars Yellow', 72, 150, nothing)
 
 
 
@@ -88,14 +97,18 @@ def calculate_line_endpoint(origin, degrees, length):
 
 
 # Start capturing video
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+if platform.system() == "Windows":
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+else:
+    cap = cv2.VideoCapture(0)
 get_disc = True
 calibrate_mode = False
+manual_mode = True
 disc_centers = []
 disc_center = (-1, -1)
 right_line = ((-1, -1), (-1, -1))
 radii = []
-radius = 0
+radius = -1
 DISC_AVG_SAMPLE_SIZE = 40
 NUM_MOTORS = 3
 
@@ -121,7 +134,23 @@ while True:
     if not ret:
         print("Failed to capture frame from camera. Check camera index and connection.")
         break
-    if get_disc or calibrate_mode:
+    if manual_mode:
+        trackbar_radius = cv2.getTrackbarPos('ManRadius', 'Trackbars Red')
+        trackbar_center = (cv2.getTrackbarPos('ManPosX', 'Trackbars Red'), cv2.getTrackbarPos('ManPosY', 'Trackbars Red'))
+
+        if trackbar_radius != radius or trackbar_center != disc_center:
+            radius = trackbar_radius
+            disc_center = trackbar_center
+            segment_endpoints = []
+            endpoint_up = calculate_line_endpoint(disc_center, segment_angles[0]-90, radius)
+            
+            endpoint_right = calculate_line_endpoint(disc_center, segment_angles[0], radius)
+            right_line = (disc_center, endpoint_right)
+            
+            for a in segment_angles:
+                segment_endpoints.append(calculate_line_endpoint(disc_center, a, radius))
+        get_disc = False
+    elif get_disc or calibrate_mode:
         # Get trackbar positions for red detections
         lower_red = np.array([cv2.getTrackbarPos('Lower Hue', 'Trackbars Red'), cv2.getTrackbarPos('Lower Saturation', 'Trackbars Red'), cv2.getTrackbarPos('Lower Value', 'Trackbars Red')])
         upper_red = np.array([cv2.getTrackbarPos('Upper Hue', 'Trackbars Red'), cv2.getTrackbarPos('Upper Saturation', 'Trackbars Red'), cv2.getTrackbarPos('Upper Value', 'Trackbars Red')])
@@ -196,12 +225,14 @@ while True:
     # Q to quit
     if key == ord('q'):
         break
-    # R to reset whilst in normal mode (not calibration)
+    # R to reset disc position whilst in normal mode (not calibration)
+    # Doesn't work in manual mode (nothing to calibrate as disc positon/radius set manually)
     if key == ord('r'):
-        if print_output:
-            print_output = False
-        if get_disc == False:
-            get_disc = True
+        if not manual_mode:
+            if print_output:
+                print_output = False
+            if get_disc == False:
+                get_disc = True
     # P to toggle print output of motor force, ball angle and force multiplier
     if key == ord('p'):
         print_output = not print_output
@@ -209,10 +240,16 @@ while True:
     if key == ord('s'):
         serial_output = not serial_output
     # Calibration mode, will only outline circles and do nothing else
+    # When in calibration mode, press c again to start regular mode (start getting the disc and then lock it and get ball position etc)
+    # Doesn't work in manual mode (nothing to calibrate as disc positon/radius set manually)
     if key == ord('c'):
-        if get_disc == False:
-            get_disc = True
-        calibrate_mode = not calibrate_mode
+        if not manual_mode:
+            if get_disc == False:
+                get_disc = True
+            calibrate_mode = not calibrate_mode
+    # Toggle manual mode, set the position and radius of the disc manually
+    if key == ord('m'):
+        manual_mode = not manual_mode
     
     if cv2.getWindowProperty('Frame', cv2.WND_PROP_VISIBLE) < 1:
         break
