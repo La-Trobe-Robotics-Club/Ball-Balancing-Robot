@@ -3,18 +3,11 @@ import cv2
 import numpy as np
 import platform
 
-#OS info
-platform_os = platform.system()
 
-# Serial config
-use_serial_string = input("Use serial? (y/n)")
-use_serial = False
-if use_serial_string == "y":
-    use_serial = True
+def initialise_connection():
+    
     ser = serial.Serial('/dev/ttyUSB0')
     center_motor = 0
-    left_motor = 0
-    right_motor = 0
     serial_count = 0
     serial_sent = None
     serial_recieved = None
@@ -39,8 +32,10 @@ if use_serial_string == "y":
     serial_sent = center_motor
     serial_count = 1
     print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
+    return ser
+    
 
-# Open CV config
+
 def nothing(x):
     pass
 
@@ -76,7 +71,26 @@ def calculate_line_endpoint(origin, degrees, length):
     y2 = int(origin[1] + length * np.sin(angle_radians))
     return (x2, y2)
 
+def clamp(n, min, max): 
+    if n < min: 
+        return min
+    elif n > max: 
+        return max
+    else: 
+        return n 
 
+# Code starts here
+# Serial config
+serial_output_string = input("Use serial and initialize arduino connection? (y/n) ")
+serial_output = False
+serial_initialised = False
+if serial_output_string == "y":
+    ser = initialise_connection()
+    serial_initialised = True
+    serial_output = True
+
+#OS info
+platform_os = platform.system()
 
 # Start capturing video
 if platform_os == "Windows":
@@ -86,6 +100,8 @@ else:
 
 ret, frame = cap.read()
 cv2.imshow('Frame', frame)
+# Create a trackbar to set the maximum angle of tilt 
+cv2.createTrackbar('MaxTilt', 'Frame', 45, 45, nothing)
 # Create a set of trackbars for manual adjustment of center
 cv2.createTrackbar('ManPosX', 'Frame', 443, 800, nothing)
 cv2.createTrackbar('ManPosY', 'Frame', 221, 450, nothing)
@@ -150,7 +166,6 @@ angle = 0
 dist_center = 0
 
 print_output = True
-serial_output = False
 
 motor_outputs = [0] * NUM_MOTORS
 
@@ -241,13 +256,14 @@ while True:
                 for e in segment_endpoints:
                     dist_to_motors.append(calculate_distance(e, ball_center))
                 motor_outputs = []
+                tilt_multiplier = cv2.getTrackbarPos('MaxTilt', 'Frame') / 45
                 for dist in dist_to_motors:
-                    motor_outputs.append((1 - dist / (radius * 2)) * 255)
+                    motor_outputs.append(clamp(1 - dist / (radius * 2), 0, 1) * 255 * tilt_multiplier)
                 center_motor = int(motor_outputs[0])
                 left_motor = int(motor_outputs[1])
                 right_motor = int(motor_outputs[2])
                 if print_output:
-                    print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4}")
+                    print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4} multiplier:{tilt_multiplier:.2f}")
                 if serial_output:
                     # Uncomment to make sure platform doesn't move if testing camera
                     center_motor = 0
@@ -300,6 +316,9 @@ while True:
     # S to toggle serial output of motor forces to arduino
     if key == ord('s'):
         serial_output = not serial_output
+        if not serial_initialised and serial_output:
+            ser = initialise_connection()
+            serial_initialised = True
     # Calibration mode, will only outline circles and do nothing else
     # When in calibration mode, press c again to start regular mode (start getting the disc and then lock it and get ball position etc)
     # Doesn't work in manual mode (nothing to calibrate as disc positon/radius set manually)
@@ -320,5 +339,5 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
-if use_serial:
+if serial_initialised:
     ser.close()
