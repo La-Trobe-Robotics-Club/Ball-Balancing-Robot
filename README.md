@@ -14,8 +14,8 @@ Hotkeys (Press in the actual openCV window)
 ### S: toggle serial output of motor force to arduino
 
 ### C: Calibration mode, will only outline circles and do nothing else
-    When in calibration mode, press c again to start regular mode (start getting the disc and then lock it and get ball position etc)
-    Doesn't work in manual mode (nothing to calibrate as disc positon/radius set manually)
+When in calibration mode, press c again to start regular mode (start getting the disc and then lock it and get ball position etc)
+Doesn't work in manual mode (nothing to calibrate as disc positon/radius set manually)
 
 ### M: Toggle manual mode, set the position and radius of the disc manually in the Trackbars Red window
 
