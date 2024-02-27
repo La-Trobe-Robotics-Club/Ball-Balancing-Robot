@@ -147,9 +147,9 @@ NUM_MOTORS = 3
 
 force_multiplier = 0
 angle = 0
-dist = 0
+dist_center = 0
 
-print_output = False
+print_output = True
 serial_output = False
 
 motor_outputs = [0] * NUM_MOTORS
@@ -237,20 +237,44 @@ while True:
             cv2.circle(frame, ball_center, ball_radius, (0, 255, 255), 2)
             cv2.circle(frame, ball_center, 2, (255, 255, 255), 3)  # Center point
             if print_output or serial_output:
-                dist = calculate_distance(disc_center, ball_center)
-                force_multiplier = dist / radius
-                cv2.line(frame,disc_center, ball_center, (255, 255, 255), 2)
-                ball_angle = angle3pt(right_line, ball_center)
-                indexes_and_dists = [(index,abs(ball_angle - segment_angle)) for index, segment_angle in indexes_and_segment_angles]
-                sort_by_nearest = sorted(indexes_and_dists, key=lambda x: x[1])
-                motor_outputs = [0] * NUM_MOTORS
-                motor_outputs[sort_by_nearest[0][0]] = (seg_size-sort_by_nearest[1][1])*force_multiplier*(255/seg_size)
-                motor_outputs[sort_by_nearest[1][0]] = (seg_size-sort_by_nearest[0][1])*force_multiplier*(255/seg_size)
+                dist_to_motors = []
+                for e in segment_endpoints:
+                    dist_to_motors.append(calculate_distance(e, ball_center))
+                motor_outputs = []
+                for dist in dist_to_motors:
+                    motor_outputs.append((1 - dist / (radius * 2)) * 255)
+                center_motor = int(motor_outputs[0])
+                left_motor = int(motor_outputs[1])
+                right_motor = int(motor_outputs[2])
                 if print_output:
-                    print(f"Motor outputs: {motor_outputs}, Ball angle: {ball_angle}, Force multiplier: {force_multiplier}")
+                    print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4}")
                 if serial_output:
-                    # Code for serial handling goes here
-                    pass
+                    # Output to Serial
+                    if ser.in_waiting == 1:
+                        serial_recieved = int.from_bytes(ser.read(), byteorder="little")
+                        if serial_sent == None or serial_sent == serial_recieved:
+                            match serial_count:
+                                case 0:
+                                    ser.write(int.to_bytes(center_motor))
+                                    serial_sent = center_motor
+                                    serial_count = 1
+                                case 1:
+                                    ser.write(int.to_bytes(left_motor))
+                                    serial_sent = left_motor
+                                    serial_count = 2
+                                case 2:
+                                    ser.write(int.to_bytes(right_motor))
+                                    serial_sent = right_motor
+                                    serial_count = 0
+                                case _:
+                                    print("ERROR: serial_count out of bounds")
+                                    # TODO: Error here
+                            print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
+                            serial_recieved = None
+                    elif ser.in_waiting > 1:
+                        print(f"{ser.read(ser.in_waiting)}")
+
+
     cv2.imshow('Frame', frame)
     
     
@@ -287,37 +311,11 @@ while True:
     if cv2.getWindowProperty('Frame', cv2.WND_PROP_VISIBLE) < 1:
         break
 
-    print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4}")
+    # print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4}")
     #Uncomment to make sure platform doesn't move if testing camera
     center_motor = 0
     left_motor = 0
     right_motor = 0
-
-    # Output to Serial
-    if use_serial:
-        if ser.in_waiting == 1:
-            serial_recieved = int.from_bytes(ser.read(), byteorder="little")
-            if serial_sent == None or serial_sent == serial_recieved:
-                match serial_count:
-                    case 0:
-                        ser.write(int.to_bytes(center_motor))
-                        serial_sent = center_motor
-                        serial_count = 1
-                    case 1:
-                        ser.write(int.to_bytes(left_motor))
-                        serial_sent = left_motor
-                        serial_count = 2
-                    case 2:
-                        ser.write(int.to_bytes(right_motor))
-                        serial_sent = right_motor
-                        serial_count = 0
-                    case _:
-                        print("ERROR: serial_count out of bounds")
-                        # TODO: Error here
-                print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
-                serial_recieved = None
-        elif ser.in_waiting > 1:
-            print(f"{ser.read(ser.in_waiting)}")
 
 cap.release()
 cv2.destroyAllWindows()
