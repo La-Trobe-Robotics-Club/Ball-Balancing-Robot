@@ -7,34 +7,38 @@ import platform
 platform_os = platform.system()
 
 # Serial config
-ser = serial.Serial('/dev/ttyUSB0')
-center_motor = 0
-left_motor = 0
-right_motor = 0
-serial_count = 0
-serial_sent = None
-serial_recieved = None
-calibrated = False
-calibration_input = None
-arduino_calibration_output = None
-# Wait for arduino to be ready
-print("Waiting for Arduino")
-ser.read_until("STARTED\r\n", 11)
-print("Arduino ready to calibrate")
-while not calibrated:
-    arduino_calibration_output = ser.read_until().decode()
-    print(f"{arduino_calibration_output}")
-    calibration_input = input("Full rotation:23945.84|")
-    ser.write((calibration_input + "|").encode())
-    if calibration_input == "y":
-        calibrated = True
-    arduino_calibration_output = ser.read_until().decode()
-    print(f"{arduino_calibration_output}")
+use_serial_string = input("Use serial? (y/n)")
+use_serial = False
+if use_serial_string == "y":
+    use_serial = True
+    ser = serial.Serial('/dev/ttyUSB0')
+    center_motor = 0
+    left_motor = 0
+    right_motor = 0
+    serial_count = 0
+    serial_sent = None
+    serial_recieved = None
+    calibrated = False
+    calibration_input = None
+    arduino_calibration_output = None
+    # Wait for arduino to be ready
+    print("Waiting for Arduino")
+    ser.read_until("STARTED\r\n", 11)
+    print("Arduino ready to calibrate")
+    while not calibrated:
+        arduino_calibration_output = ser.read_until().decode()
+        print(f"{arduino_calibration_output}")
+        calibration_input = input("Full rotation:23945.84|")
+        ser.write((calibration_input + "|").encode())
+        if calibration_input == "y":
+            calibrated = True
+        arduino_calibration_output = ser.read_until().decode()
+        print(f"{arduino_calibration_output}")
 
-ser.write(int.to_bytes(center_motor))
-serial_sent = center_motor
-serial_count = 1
-print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
+    ser.write(int.to_bytes(center_motor))
+    serial_sent = center_motor
+    serial_count = 1
+    print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
 
 # Open CV config
 def nothing(x):
@@ -82,6 +86,10 @@ else:
 
 ret, frame = cap.read()
 cv2.imshow('Frame', frame)
+# Create a set of trackbars for manual adjustment of center
+cv2.createTrackbar('ManPosX', 'Frame', 443, 800, nothing)
+cv2.createTrackbar('ManPosY', 'Frame', 221, 450, nothing)
+cv2.createTrackbar('ManRadius', 'Frame', 205, 500, nothing)
 # Create a set of trackbars for  HSV adjustment of center red disk
 cv2.createTrackbar('Lower Hue Disk', 'Frame', 0, 179, nothing)
 cv2.createTrackbar('Upper Hue Disk', 'Frame', 179, 179, nothing)
@@ -93,14 +101,14 @@ cv2.createTrackbar('Min Radius Disk', 'Frame', 0, 150, nothing)
 cv2.createTrackbar('Max Radius Disk', 'Frame', 0, 150, nothing)
 
 # Create another set of trackbars for HSV adjustment for the ball (yellow by default)
-cv2.createTrackbar('Lower Hue Ball', 'Frame', 25, 179, nothing)  # Adjusted for fluorescent yellow
-cv2.createTrackbar('Upper Hue Ball', 'Frame', 40, 179, nothing)
-cv2.createTrackbar('Lower Saturation Ball', 'Frame', 150, 255, nothing)
+cv2.createTrackbar('Lower Hue Ball', 'Frame', 0, 179, nothing)  # Adjusted for fluorescent yellow
+cv2.createTrackbar('Upper Hue Ball', 'Frame', 179, 179, nothing)
+cv2.createTrackbar('Lower Saturation Ball', 'Frame', 0, 255, nothing)
 cv2.createTrackbar('Upper Saturation Ball', 'Frame', 255, 255, nothing)
-cv2.createTrackbar('Lower Value Ball', 'Frame', 150, 255, nothing)
-cv2.createTrackbar('Upper Value Ball', 'Frame', 255, 255, nothing)
-cv2.createTrackbar('Min Radius Ball', 'Frame', 0, 150, nothing)
-cv2.createTrackbar('Max Radius Ball', 'Frame', 0, 150, nothing)
+cv2.createTrackbar('Lower Value Ball', 'Frame', 0, 255, nothing)
+cv2.createTrackbar('Upper Value Ball', 'Frame', 109, 255, nothing)
+cv2.createTrackbar('Min Radius Ball', 'Frame', 47, 150, nothing)
+cv2.createTrackbar('Max Radius Ball', 'Frame', 72, 150, nothing)
 
 
 # Mark's colors, red and black, for testing purposes only, red and yellow wasn't working
@@ -128,11 +136,12 @@ cv2.createTrackbar('Max Radius Ball', 'Frame', 0, 150, nothing)
 
 get_disc = True
 calibrate_mode = False
+manual_mode = True
 disc_centers = []
 disc_center = (-1, -1)
 right_line = ((-1, -1), (-1, -1))
 radii = []
-radius = 0
+radius = -1
 DISC_AVG_SAMPLE_SIZE = 40
 NUM_MOTORS = 3
 
@@ -158,7 +167,23 @@ while True:
     if not ret:
         print("Failed to capture frame from camera. Check camera index and connection.")
         break
-    if get_disc or calibrate_mode:
+    if manual_mode:
+        trackbar_radius = cv2.getTrackbarPos('ManRadius', 'Frame')
+        trackbar_center = (cv2.getTrackbarPos('ManPosX', 'Frame'), cv2.getTrackbarPos('ManPosY', 'Frame'))
+
+        if trackbar_radius != radius or trackbar_center != disc_center:
+            radius = trackbar_radius
+            disc_center = trackbar_center
+            segment_endpoints = []
+            endpoint_up = calculate_line_endpoint(disc_center, segment_angles[0]-90, radius)
+            
+            endpoint_right = calculate_line_endpoint(disc_center, segment_angles[0], radius)
+            right_line = (disc_center, endpoint_right)
+            
+            for a in segment_angles:
+                segment_endpoints.append(calculate_line_endpoint(disc_center, a, radius))
+        get_disc = False
+    elif get_disc or calibrate_mode:
         # Get trackbar positions for red detections
         lower_red = np.array([cv2.getTrackbarPos('Lower Hue Disk', 'Frame'), cv2.getTrackbarPos('Lower Saturation Disk', 'Frame'), cv2.getTrackbarPos('Lower Value Disk', 'Frame')])
         upper_red = np.array([cv2.getTrackbarPos('Upper Hue Disk', 'Frame'), cv2.getTrackbarPos('Upper Saturation Disk', 'Frame'), cv2.getTrackbarPos('Upper Value Disk', 'Frame')])
@@ -233,12 +258,14 @@ while True:
     # Q to quit
     if key == ord('q'):
         break
-    # R to reset whilst in normal mode (not calibration)
+    # R to reset disc position whilst in normal mode (not calibration)
+    # Doesn't work in manual mode (nothing to calibrate as disc positon/radius set manually)
     if key == ord('r'):
-        if print_output:
-            print_output = False
-        if get_disc == False:
-            get_disc = True
+        if not manual_mode:
+            if print_output:
+                print_output = False
+            if get_disc == False:
+                get_disc = True
     # P to toggle print output of motor force, ball angle and force multiplier
     if key == ord('p'):
         print_output = not print_output
@@ -246,10 +273,16 @@ while True:
     if key == ord('s'):
         serial_output = not serial_output
     # Calibration mode, will only outline circles and do nothing else
+    # When in calibration mode, press c again to start regular mode (start getting the disc and then lock it and get ball position etc)
+    # Doesn't work in manual mode (nothing to calibrate as disc positon/radius set manually)
     if key == ord('c'):
-        if get_disc == False:
-            get_disc = True
-        calibrate_mode = not calibrate_mode
+        if not manual_mode:
+            if get_disc == False:
+                get_disc = True
+            calibrate_mode = not calibrate_mode
+    # Toggle manual mode, set the position and radius of the disc manually
+    if key == ord('m'):
+        manual_mode = not manual_mode
     
     if cv2.getWindowProperty('Frame', cv2.WND_PROP_VISIBLE) < 1:
         break
@@ -261,30 +294,32 @@ while True:
     right_motor = 0
 
     # Output to Serial
-    if ser.in_waiting == 1:
-        serial_recieved = int.from_bytes(ser.read(), byteorder="little")
-        if serial_sent == None or serial_sent == serial_recieved:
-            match serial_count:
-                case 0:
-                    ser.write(int.to_bytes(center_motor))
-                    serial_sent = center_motor
-                    serial_count = 1
-                case 1:
-                    ser.write(int.to_bytes(left_motor))
-                    serial_sent = left_motor
-                    serial_count = 2
-                case 2:
-                    ser.write(int.to_bytes(right_motor))
-                    serial_sent = right_motor
-                    serial_count = 0
-                case _:
-                    print("ERROR: serial_count out of bounds")
-                    # TODO: Error here
-            print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
-            serial_recieved = None
-    elif ser.in_waiting > 1:
-        print(f"{ser.read(ser.in_waiting)}")
+    if use_serial:
+        if ser.in_waiting == 1:
+            serial_recieved = int.from_bytes(ser.read(), byteorder="little")
+            if serial_sent == None or serial_sent == serial_recieved:
+                match serial_count:
+                    case 0:
+                        ser.write(int.to_bytes(center_motor))
+                        serial_sent = center_motor
+                        serial_count = 1
+                    case 1:
+                        ser.write(int.to_bytes(left_motor))
+                        serial_sent = left_motor
+                        serial_count = 2
+                    case 2:
+                        ser.write(int.to_bytes(right_motor))
+                        serial_sent = right_motor
+                        serial_count = 0
+                    case _:
+                        print("ERROR: serial_count out of bounds")
+                        # TODO: Error here
+                print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
+                serial_recieved = None
+        elif ser.in_waiting > 1:
+            print(f"{ser.read(ser.in_waiting)}")
 
 cap.release()
 cv2.destroyAllWindows()
-ser.close()
+if use_serial:
+    ser.close()
