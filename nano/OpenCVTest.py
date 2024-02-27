@@ -4,14 +4,27 @@ import serial
 ser = serial.Serial('/dev/ttyUSB0')
 center_motor = 0
 left_motor = 0
-right_motor = 255
+right_motor = 0
 serial_count = 0
 serial_sent = None
 serial_recieved = None
+calibrated = False
+calibration_input = None
+arduino_calibration_output = None
 # Wait for arduino to be ready
 print("Waiting for Arduino")
 ser.read_until("STARTED\r\n", 11)
-print("Arduino ready")
+print("Arduino ready to calibrate")
+while not calibrated:
+    arduino_calibration_output = ser.read_until().decode()
+    print(f"{arduino_calibration_output}")
+    calibration_input = input("Full rotation:23945.84|")
+    ser.write((calibration_input + "|").encode())
+    if calibration_input == "y":
+        calibrated = True
+    arduino_calibration_output = ser.read_until().decode()
+    print(f"{arduino_calibration_output}")
+
 ser.write(int.to_bytes(center_motor))
 serial_sent = center_motor
 serial_count = 1

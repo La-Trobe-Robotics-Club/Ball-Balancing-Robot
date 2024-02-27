@@ -45,18 +45,21 @@ class Encoder {
           }
         }
       }
-      if (this->change_port1 && this->change_port2) {
-        while(true) {
-          Serial.println("ERROR: Encoders didn't update in time (both states changed)");
-          // turn_off_all_motors(); // TODO
-          delay(500);
-        }
-      }
+//      if (this->change_port1 && this->change_port2) {
+//        while(true) {
+//          Serial.println("ERROR: Encoders didn't update in time (both states changed)");
+//          // turn_off_all_motors(); // TODO
+//          delay(500);
+//        }
+//      }
       this->last_port1 = this->current_port1;
       this->last_port2 = this->current_port2;
       this->change_port1 = false;
       this->change_port2 = false;
       return this->position;
+    }
+    void zero() {
+      this-> position = 0;
     }
   private:
     uint8_t port1;
@@ -109,13 +112,13 @@ class Motor {
     void drive() {
       digitalWrite(port_SLP, HIGH);
       long speed = this->pid.output((float)(this->target-this->position));
-      if (speed >= 0) {
+      if (speed > 0) {
         digitalWrite(port_PH, LOW);
       }
-      else {
+      else if (speed < 0) {
         digitalWrite(port_PH, HIGH);
       }
-      analogWrite(port_EN, speed);
+      analogWrite(port_EN, -speed);
     }
     void off() {
       analogWrite(port_EN, 0);
@@ -126,6 +129,18 @@ class Motor {
     long get_target() {
       return this->target;
     }
+    bool stopped() {
+      this->last_position = this->position;
+      if (last_position != position) {
+        last_moving_time = millis();
+      } else if (millis() - last_moving_time >= 1000 && this->position == this->target) {
+        return true;
+      }
+      return false;
+    }
+    void zero() {
+      this->encoder.zero();
+    }
   private:
     uint8_t port_EN;
     uint8_t port_PH;
@@ -134,6 +149,8 @@ class Motor {
     long target;
     long position;
     PID pid;
+    long last_position;
+    long last_moving_time;
 };
 
 struct motor_targets {
@@ -247,9 +264,10 @@ const long LONG_MAX = 2147483647;
 void setup() {
   serial.setup();
   Serial.setTimeout(LONG_MAX);
-  update_start = micros();
   //update_finish = micros();
   Serial.println("STARTED");
+  delay(500);
+  update_start = micros();
 }
 
 struct motor_targets targets;
@@ -289,41 +307,44 @@ void loop() {
     serial.read(targets_pointer);
     check_encoder_time();
     set_motor_targets(targets_pointer);
-  } else {
-    if (true /*TODO: replace true with motors not moving*/) {
-      
-      update_all_positions();
+  } else if (center.stopped() && left.stopped() && right.stopped()) {
+      turn_off_all_motors();
       String calibration_data;
       switch(calibration_serial_count) {
         case 0:
           Serial.println("center motor position");
-          calibration_data = Serial.readString();
+          calibration_data = Serial.readStringUntil('|');
           center.set_target(calibration_data.toInt());
-          Serial.println(calibration_data);
+          Serial.println(String(center.get_target()));
           calibration_serial_count = 1;
           break;
         case 1:
           Serial.println("left motor position");
-          calibration_data = Serial.readString();
+          calibration_data = Serial.readStringUntil('|');
           left.set_target(calibration_data.toInt());
-          Serial.println(calibration_data);
+          Serial.println(String(left.get_target()));
           calibration_serial_count = 2;
           break;
         case 2:
           Serial.println("right motor position");
-          calibration_data = Serial.readString();
+          calibration_data = Serial.readStringUntil('|');
           right.set_target(calibration_data.toInt());
-          Serial.println(calibration_data);
+          Serial.println(String(right.get_target()));
           calibration_serial_count = 3;
           break;
         case 3:
           Serial.println("Finished calibration? (y/n)");
-          calibration_data = Serial.readString();
-          if (calibration_data = "y") {
+          calibration_data = Serial.readStringUntil('|');
+          if (String(calibration_data) == "y") {
             calibrated = true;
+            center.zero();
+            left.zero();
+            right.zero();
+            Serial.println("Calibration finished");
           }
           else {
             calibration_serial_count = 0;
+            Serial.println("Calibration continued");
           }
           break;
         default:
@@ -334,9 +355,8 @@ void loop() {
           }
           break;
       }
+      update_start = micros(); // Don't error cause it took too long
     }
-    time_taken = micros(); // Don't error cause it took too long
-  }
   check_encoder_time();
   center.drive();
   check_encoder_time();
