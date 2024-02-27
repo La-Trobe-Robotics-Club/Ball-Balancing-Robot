@@ -97,7 +97,7 @@ ret, frame = cap.read()
 cv2.imshow('Frame', frame)
 # Create a trackbar to set the maximum angle of tilt 
 # Create a trackbar to set the maximum angle of tilt and rotation of disc to align motors
-cv2.createTrackbar('MaxTilt', 'Frame', 45, 45, nothing)
+cv2.createTrackbar('MaxTilt', 'Frame', 0, 45, nothing) # Don't move until this slider is moved
 cv2.createTrackbar('Rotation', 'Frame', 90, 360, nothing)
 # Create a set of trackbars for manual adjustment of center
 cv2.createTrackbar('ManPosX', 'Frame', 443, 800, nothing)
@@ -261,8 +261,8 @@ while True:
                 for dist in dist_to_motors:
                     motor_outputs.append(clamp(1 - dist / (radius * 2), 0, 1) * 255 * tilt_multiplier)
                 center_motor = int(motor_outputs[0])
-                left_motor = int(motor_outputs[1])
-                right_motor = int(motor_outputs[2])
+                left_motor = int(motor_outputs[2]) #was wrong way around
+                right_motor = int(motor_outputs[1]) #was wrong way around
                 if print_output:
                     print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4} tilt multiplier:{tilt_multiplier:.2f}")
                 if serial_output:
