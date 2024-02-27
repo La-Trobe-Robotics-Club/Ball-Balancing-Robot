@@ -243,8 +243,10 @@ class SerialCustom {
 
 SerialCustom serial;
 
+const long LONG_MAX = 2147483647;
 void setup() {
   serial.setup();
+  Serial.setTimeout(LONG_MAX);
   update_start = micros();
   //update_finish = micros();
   Serial.println("STARTED");
@@ -252,7 +254,9 @@ void setup() {
 
 struct motor_targets targets;
 struct motor_targets* targets_pointer = &targets;
-int ran = 0;
+//int ran = 0;
+bool calibrated = false;
+uint8_t calibration_serial_count = 0;
 void loop() {
 //  check_encoder_time();
 //  if (Serial.availableForWrite() == 63) {
@@ -281,18 +285,58 @@ void loop() {
 //    Serial.println(right.get_target());
 //  }
   check_encoder_time();
-  serial.read(targets_pointer);
-//  check_encoder_time();
-//  int test = 23;
-//  if (Serial.availableForWrite() == 63 && ran < 2) {
-//    Serial.write(test);
-//    ran += 1;
-//  }
-//  targets_pointer->center = 0;
-//  targets_pointer->left = 0;
-//  targets_pointer->right = 0;
-  check_encoder_time();
-  set_motor_targets(targets_pointer);
+  if (calibrated) {
+    serial.read(targets_pointer);
+    check_encoder_time();
+    set_motor_targets(targets_pointer);
+  } else {
+    if (true /*TODO: replace true with motors not moving*/) {
+      
+      update_all_positions();
+      String calibration_data;
+      switch(calibration_serial_count) {
+        case 0:
+          Serial.println("center motor position");
+          calibration_data = Serial.readString();
+          center.set_target(calibration_data.toInt());
+          Serial.println(calibration_data);
+          calibration_serial_count = 1;
+          break;
+        case 1:
+          Serial.println("left motor position");
+          calibration_data = Serial.readString();
+          left.set_target(calibration_data.toInt());
+          Serial.println(calibration_data);
+          calibration_serial_count = 2;
+          break;
+        case 2:
+          Serial.println("right motor position");
+          calibration_data = Serial.readString();
+          right.set_target(calibration_data.toInt());
+          Serial.println(calibration_data);
+          calibration_serial_count = 3;
+          break;
+        case 3:
+          Serial.println("Finished calibration? (y/n)");
+          calibration_data = Serial.readString();
+          if (calibration_data = "y") {
+            calibrated = true;
+          }
+          else {
+            calibration_serial_count = 0;
+          }
+          break;
+        default:
+          while(true) {
+            Serial.println("ERROR: calibration_serial_count not in bounds");
+            turn_off_all_motors();
+            delay(500);
+          }
+          break;
+      }
+    }
+    time_taken = micros(); // Don't error cause it took too long
+  }
   check_encoder_time();
   center.drive();
   check_encoder_time();

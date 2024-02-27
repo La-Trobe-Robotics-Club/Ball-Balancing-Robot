@@ -10,7 +10,7 @@ serial_sent = None
 serial_recieved = None
 # Wait for arduino to be ready
 print("Waiting for Arduino")
-ser.read_until("STARTED\r\n", 9)
+ser.read_until("STARTED\r\n", 11)
 print("Arduino ready")
 ser.write(int.to_bytes(center_motor))
 serial_sent = center_motor
