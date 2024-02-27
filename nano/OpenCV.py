@@ -96,7 +96,9 @@ else:
 ret, frame = cap.read()
 cv2.imshow('Frame', frame)
 # Create a trackbar to set the maximum angle of tilt 
+# Create a trackbar to set the maximum angle of tilt and rotation of disc to align motors
 cv2.createTrackbar('MaxTilt', 'Frame', 45, 45, nothing)
+cv2.createTrackbar('Rotation', 'Frame', 90, 360, nothing)
 # Create a set of trackbars for manual adjustment of center
 cv2.createTrackbar('ManPosX', 'Frame', 443, 800, nothing)
 cv2.createTrackbar('ManPosY', 'Frame', 221, 450, nothing)
@@ -154,6 +156,7 @@ disc_center = (-1, -1)
 right_line = ((-1, -1), (-1, -1))
 radii = []
 radius = -1
+rotation = 0
 DISC_AVG_SAMPLE_SIZE = 40
 NUM_MOTORS = 3
 
@@ -170,7 +173,7 @@ left_motor = 0
 right_motor = 0
 
 seg_size = 360 / NUM_MOTORS
-segment_angles = np.linspace(0,360,NUM_MOTORS,endpoint=False)
+segment_angles = np.linspace(0,-360,NUM_MOTORS,endpoint=False)
 indexes_and_segment_angles = [(i, int(a)) for i, a in enumerate(segment_angles)]
 indexes_and_segment_angles.append((0, 360))
 while True:
@@ -181,10 +184,11 @@ while True:
     if manual_mode:
         trackbar_radius = cv2.getTrackbarPos('ManRadius', 'Frame')
         trackbar_center = (cv2.getTrackbarPos('ManPosX', 'Frame'), cv2.getTrackbarPos('ManPosY', 'Frame'))
-
-        if trackbar_radius != radius or trackbar_center != disc_center:
+        trackbar_rotation = cv2.getTrackbarPos('Rotation', 'Frame')
+        if trackbar_radius != radius or trackbar_center != disc_center or trackbar_rotation != rotation:
             radius = trackbar_radius
             disc_center = trackbar_center
+            rotation = trackbar_rotation
             segment_endpoints = []
             endpoint_up = calculate_line_endpoint(disc_center, segment_angles[0]-90, radius)
             
@@ -192,7 +196,7 @@ while True:
             right_line = (disc_center, endpoint_right)
             
             for a in segment_angles:
-                segment_endpoints.append(calculate_line_endpoint(disc_center, a, radius))
+                segment_endpoints.append(calculate_line_endpoint(disc_center, a+rotation, radius))
         get_disc = False
     elif get_disc or calibrate_mode:
         # Get trackbar positions for red detections
@@ -219,9 +223,10 @@ while True:
             
             endpoint_right = calculate_line_endpoint(disc_center, segment_angles[0], radius)
             right_line = (disc_center, endpoint_right)
-            
+            trackbar_rotation = cv2.getTrackbarPos('Rotation', 'Frame')
+            rotation = trackbar_rotation
             for a in segment_angles:
-                segment_endpoints.append(calculate_line_endpoint(disc_center, a, radius))
+                segment_endpoints.append(calculate_line_endpoint(disc_center, a+rotation, radius))
             
             get_disc = False
     if not get_disc or calibrate_mode:
@@ -231,7 +236,7 @@ while True:
         if not calibrate_mode:
             cv2.line(frame, disc_center, segment_endpoints[0], (0, 255, 0), 3) # Green
             cv2.line(frame, disc_center, segment_endpoints[1], (0, 0, 255), 3) # Red
-            cv2.line(frame, disc_center, segment_endpoints[2], (213, 255, 0), 3) # Blue-ish
+            cv2.line(frame, disc_center, segment_endpoints[2], (255, 0, 0), 3) # Blue
             for endpoint in segment_endpoints[3:]:
                 cv2.line(frame, disc_center, endpoint, (0, 0, 0), 3)
             cv2.circle(frame, disc_center, radius, (0, 255, 0), 2)
