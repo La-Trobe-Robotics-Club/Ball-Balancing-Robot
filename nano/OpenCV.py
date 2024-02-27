@@ -95,7 +95,6 @@ else:
 
 ret, frame = cap.read()
 cv2.imshow('Frame', frame)
-# Create a trackbar to set the maximum angle of tilt 
 # Create a trackbar to set the maximum angle of tilt and rotation of disc to align motors
 cv2.createTrackbar('MaxTilt', 'Frame', 0, 45, nothing) # Don't move until this slider is moved
 cv2.createTrackbar('Rotation', 'Frame', 90, 360, nothing)
@@ -322,9 +321,8 @@ while True:
     # S to toggle serial output of motor forces to arduino
     if key == ord('s'):
         serial_output = not serial_output
-        if not serial_initialised and serial_output:
-            ser = initialise_connection()
-            serial_initialised = True
+        if not serial_initialised:
+            print("Please restart to connect to arduino and output serial")
     # Calibration mode, will only outline circles and do nothing else
     # When in calibration mode, press c again to start regular mode (start getting the disc and then lock it and get ball position etc)
     # Doesn't work in manual mode (nothing to calibrate as disc positon/radius set manually)
