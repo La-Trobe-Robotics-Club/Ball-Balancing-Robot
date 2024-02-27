@@ -3,39 +3,6 @@ import cv2
 import numpy as np
 import platform
 
-
-def initialise_connection():
-    
-    ser = serial.Serial('/dev/ttyUSB0')
-    center_motor = 0
-    serial_count = 0
-    serial_sent = None
-    serial_recieved = None
-    calibrated = False
-    calibration_input = None
-    arduino_calibration_output = None
-    # Wait for arduino to be ready
-    print("Waiting for Arduino")
-    ser.read_until("STARTED\r\n", 11)
-    print("Arduino ready to calibrate")
-    while not calibrated:
-        arduino_calibration_output = ser.read_until().decode()
-        print(f"{arduino_calibration_output}")
-        calibration_input = input("Full rotation:23945.84|")
-        ser.write((calibration_input + "|").encode())
-        if calibration_input == "y":
-            calibrated = True
-        arduino_calibration_output = ser.read_until().decode()
-        print(f"{arduino_calibration_output}")
-
-    ser.write(int.to_bytes(center_motor))
-    serial_sent = center_motor
-    serial_count = 1
-    print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
-    return ser
-    
-
-
 def nothing(x):
     pass
 
@@ -44,6 +11,7 @@ def detect_circles(frame, lower_color, upper_color, min_radius, max_radius):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lower_color, upper_color)
     mask = cv2.GaussianBlur(mask, (9, 9), 2, 2)
+    cv2.imshow('mask', mask) # show what the function sees to assist calibration
     circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=min_radius, maxRadius=max_radius)
     if circles is not None:
         circles = np.uint16(np.around(circles))
@@ -84,8 +52,35 @@ def clamp(n, min, max):
 serial_output_string = input("Use serial and initialize arduino connection? (y/n) ")
 serial_output = False
 serial_initialised = False
+center_motor = 0
+left_motor = 0
+right_motor = 0
+serial_count = 0
+serial_sent = None
+serial_recieved = None
+calibrated = False
+calibration_input = None
+arduino_calibration_output = None
 if serial_output_string == "y":
-    ser = initialise_connection()
+    ser = serial.Serial('/dev/ttyUSB0')
+    # Wait for arduino to be ready
+    print("Waiting for Arduino")
+    ser.read_until("STARTED\r\n", 11)
+    print("Arduino ready to calibrate")
+    while not calibrated:
+        arduino_calibration_output = ser.read_until().decode()
+        print(f"{arduino_calibration_output}")
+        calibration_input = input("Full rotation:23945.84|")
+        ser.write((calibration_input + "|").encode())
+        if calibration_input == "y":
+            calibrated = True
+        arduino_calibration_output = ser.read_until().decode()
+        print(f"{arduino_calibration_output}")
+
+    ser.write(int.to_bytes(center_motor))
+    serial_sent = center_motor
+    serial_count = 1
+    print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
     serial_initialised = True
     serial_output = True
 
@@ -101,7 +96,7 @@ else:
 ret, frame = cap.read()
 cv2.imshow('Frame', frame)
 # Create a trackbar to set the maximum angle of tilt 
-cv2.createTrackbar('MaxTilt', 'Frame', 5, 45, nothing)
+cv2.createTrackbar('MaxTilt', 'Frame', 45, 45, nothing)
 # Create a set of trackbars for manual adjustment of center
 cv2.createTrackbar('ManPosX', 'Frame', 443, 800, nothing)
 cv2.createTrackbar('ManPosY', 'Frame', 221, 450, nothing)
@@ -116,15 +111,16 @@ cv2.createTrackbar('Upper Value Disk', 'Frame', 255, 255, nothing)
 cv2.createTrackbar('Min Radius Disk', 'Frame', 0, 150, nothing)
 cv2.createTrackbar('Max Radius Disk', 'Frame', 0, 150, nothing)
 
-# Create another set of trackbars for HSV adjustment for the ball (yellow by default)
-cv2.createTrackbar('Lower Hue Ball', 'Frame', 0, 179, nothing)  # Adjusted for fluorescent yellow
-cv2.createTrackbar('Upper Hue Ball', 'Frame', 179, 179, nothing)
-cv2.createTrackbar('Lower Saturation Ball', 'Frame', 0, 255, nothing)
+# Create another set of trackbars for HSV adjustment for the ball
+# Calibrated for yellow ball in Les's bedroom
+cv2.createTrackbar('Lower Hue Ball', 'Frame', 0, 179, nothing) 
+cv2.createTrackbar('Upper Hue Ball', 'Frame', 90, 179, nothing)
+cv2.createTrackbar('Lower Saturation Ball', 'Frame', 80, 255, nothing)
 cv2.createTrackbar('Upper Saturation Ball', 'Frame', 255, 255, nothing)
 cv2.createTrackbar('Lower Value Ball', 'Frame', 0, 255, nothing)
-cv2.createTrackbar('Upper Value Ball', 'Frame', 109, 255, nothing)
-cv2.createTrackbar('Min Radius Ball', 'Frame', 47, 150, nothing)
-cv2.createTrackbar('Max Radius Ball', 'Frame', 72, 150, nothing)
+cv2.createTrackbar('Upper Value Ball', 'Frame', 255, 255, nothing)
+cv2.createTrackbar('Min Radius Ball', 'Frame', 5, 150, nothing)
+cv2.createTrackbar('Max Radius Ball', 'Frame', 20, 150, nothing)
 
 
 # Mark's colors, red and black, for testing purposes only, red and yellow wasn't working
@@ -266,33 +262,38 @@ while True:
                     print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4} tilt multiplier:{tilt_multiplier:.2f}")
                 if serial_output:
                     # Uncomment to make sure platform doesn't move if testing camera
-                    center_motor = 0
-                    left_motor = 0
-                    right_motor = 0
+                    # center_motor = 0
+                    # left_motor = 0
+                    # right_motor = 0
                     # Output to Serial
-                    if ser.in_waiting == 1:
-                        serial_recieved = int.from_bytes(ser.read(), byteorder="little")
-                        if serial_sent == None or serial_sent == serial_recieved:
-                            match serial_count:
-                                case 0:
-                                    ser.write(int.to_bytes(center_motor))
-                                    serial_sent = center_motor
-                                    serial_count = 1
-                                case 1:
-                                    ser.write(int.to_bytes(left_motor))
-                                    serial_sent = left_motor
-                                    serial_count = 2
-                                case 2:
-                                    ser.write(int.to_bytes(right_motor))
-                                    serial_sent = right_motor
-                                    serial_count = 0
-                                case _:
-                                    print("ERROR: serial_count out of bounds")
-                                    # TODO: Error here
-                            print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
-                            serial_recieved = None
-                    elif ser.in_waiting > 1:
-                        print(f"{ser.read(ser.in_waiting)}")
+                    i = 0
+                    while i < 3:
+                        if ser.in_waiting == 1:
+                            serial_recieved = int.from_bytes(ser.read(), byteorder="little")
+                            if serial_sent == None or serial_sent == serial_recieved:
+                                match serial_count:
+                                    case 0:
+                                        ser.write(int.to_bytes(center_motor))
+                                        serial_sent = center_motor
+                                        serial_count = 1
+                                        i += 1
+                                    case 1:
+                                        ser.write(int.to_bytes(left_motor))
+                                        serial_sent = left_motor
+                                        serial_count = 2
+                                        i += 1
+                                    case 2:
+                                        ser.write(int.to_bytes(right_motor))
+                                        serial_sent = right_motor
+                                        serial_count = 0
+                                        i += 1
+                                    case _:
+                                        print("ERROR: serial_count out of bounds")
+                                        # TODO: Error here
+                                print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
+                                serial_recieved = None
+                        elif ser.in_waiting > 1:
+                            print(f"{ser.read(ser.in_waiting)}")
 
 
     cv2.imshow('Frame', frame)
@@ -340,4 +341,35 @@ while True:
 cap.release()
 cv2.destroyAllWindows()
 if serial_initialised:
+    center_motor = 0
+    left_motor = 0
+    right_motor = 0
+    i = 0
+    while i < 3:
+        if ser.in_waiting == 1:
+            serial_recieved = int.from_bytes(ser.read(), byteorder="little")
+            if serial_sent == None or serial_sent == serial_recieved:
+                match serial_count:
+                    case 0:
+                        ser.write(int.to_bytes(center_motor))
+                        serial_sent = center_motor
+                        serial_count = 1
+                        i += 1
+                    case 1:
+                        ser.write(int.to_bytes(left_motor))
+                        serial_sent = left_motor
+                        serial_count = 2
+                        i += 1
+                    case 2:
+                        ser.write(int.to_bytes(right_motor))
+                        serial_sent = right_motor
+                        serial_count = 0
+                        i += 1
+                    case _:
+                        print("ERROR: serial_count out of bounds")
+                        # TODO: Error here
+                print(f"count: {serial_count} sent:{str(serial_sent):<4} recieved:{str(serial_recieved):<4}")
+                serial_recieved = None
+        elif ser.in_waiting > 1:
+            print(f"{ser.read(ser.in_waiting)}")
     ser.close()
