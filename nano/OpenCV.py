@@ -249,6 +249,10 @@ while True:
                 if print_output:
                     print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4}")
                 if serial_output:
+                    # Uncomment to make sure platform doesn't move if testing camera
+                    center_motor = 0
+                    left_motor = 0
+                    right_motor = 0
                     # Output to Serial
                     if ser.in_waiting == 1:
                         serial_recieved = int.from_bytes(ser.read(), byteorder="little")
@@ -312,10 +316,7 @@ while True:
         break
 
     # print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4}")
-    #Uncomment to make sure platform doesn't move if testing camera
-    center_motor = 0
-    left_motor = 0
-    right_motor = 0
+
 
 cap.release()
 cv2.destroyAllWindows()
