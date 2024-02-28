@@ -98,15 +98,15 @@ ret, frame = cap.read()
 cv2.imshow('Frame', frame)
 # Create a trackbar to set the maximum angle of tilt and rotation of disc to align motors
 cv2.createTrackbar('MaxTilt', 'Frame', 0, 255, nothing) # Don't move until this slider is moved
-cv2.createTrackbar('Rotation', 'Frame', 90, 360, nothing)
+cv2.createTrackbar('Rotation', 'Frame', 225, 360, nothing)
 # Create a set of trackbars for manual adjustment of center
-cv2.createTrackbar('ManPosX', 'Frame', 400, 800, nothing)
-cv2.createTrackbar('ManPosY', 'Frame', 225, 450, nothing)
-cv2.createTrackbar('ManRadius', 'Frame', 205, 500, nothing)
+cv2.createTrackbar('ManPosX', 'Frame', 359, 800, nothing)
+cv2.createTrackbar('ManPosY', 'Frame', 267, 450, nothing)
+cv2.createTrackbar('ManRadius', 'Frame', 180, 500, nothing)
 # Create a set of trackbars for PID
 cv2.createTrackbar('kP', 'Frame', 255, 255, nothing)
-cv2.createTrackbar('kI', 'Frame', 100, 1000, nothing)
-cv2.createTrackbar('kD', 'Frame', 200, 1000, nothing)
+cv2.createTrackbar('kI', 'Frame', 0, 1000, nothing)
+cv2.createTrackbar('kD', 'Frame', 0, 1000, nothing)
 # Create a set of trackbars for  HSV adjustment of center red disk
 # cv2.createTrackbar('Lower Hue Disk', 'Frame', 0, 179, nothing)
 # cv2.createTrackbar('Upper Hue Disk', 'Frame', 179, 179, nothing)
@@ -119,7 +119,7 @@ cv2.createTrackbar('kD', 'Frame', 200, 1000, nothing)
 
 # Create another set of trackbars for HSV adjustment for the ball
 # Calibrated for yellow ball in Les's bedroom
-cv2.createTrackbar('Lower Hue Ball', 'Frame', 0, 179, nothing) 
+cv2.createTrackbar('Lower Hue Ball', 'Frame', 5, 179, nothing) 
 cv2.createTrackbar('Upper Hue Ball', 'Frame', 90, 179, nothing)
 cv2.createTrackbar('Lower Saturation Ball', 'Frame', 80, 255, nothing)
 cv2.createTrackbar('Upper Saturation Ball', 'Frame', 255, 255, nothing)
