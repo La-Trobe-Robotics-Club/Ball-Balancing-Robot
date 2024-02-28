@@ -1,5 +1,11 @@
 # Orientation-week-showcase-project
 
+## OpenCV requirements
+### python
+### python-opencv
+### python-pyserial
+### python-numpy
+
 ## OpenCV controls
 
 You can control the maximum tilt of the platform. The default value is 5 degrees.

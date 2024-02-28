@@ -99,8 +99,8 @@ cv2.imshow('Frame', frame)
 cv2.createTrackbar('MaxTilt', 'Frame', 0, 45, nothing) # Don't move until this slider is moved
 cv2.createTrackbar('Rotation', 'Frame', 90, 360, nothing)
 # Create a set of trackbars for manual adjustment of center
-cv2.createTrackbar('ManPosX', 'Frame', 443, 800, nothing)
-cv2.createTrackbar('ManPosY', 'Frame', 221, 450, nothing)
+cv2.createTrackbar('ManPosX', 'Frame', 400, 800, nothing)
+cv2.createTrackbar('ManPosY', 'Frame', 225, 450, nothing)
 cv2.createTrackbar('ManRadius', 'Frame', 205, 500, nothing)
 # Create a set of trackbars for  HSV adjustment of center red disk
 cv2.createTrackbar('Lower Hue Disk', 'Frame', 0, 179, nothing)
@@ -118,10 +118,10 @@ cv2.createTrackbar('Lower Hue Ball', 'Frame', 0, 179, nothing)
 cv2.createTrackbar('Upper Hue Ball', 'Frame', 90, 179, nothing)
 cv2.createTrackbar('Lower Saturation Ball', 'Frame', 80, 255, nothing)
 cv2.createTrackbar('Upper Saturation Ball', 'Frame', 255, 255, nothing)
-cv2.createTrackbar('Lower Value Ball', 'Frame', 0, 255, nothing)
+cv2.createTrackbar('Lower Value Ball', 'Frame', 150, 255, nothing)
 cv2.createTrackbar('Upper Value Ball', 'Frame', 255, 255, nothing)
-cv2.createTrackbar('Min Radius Ball', 'Frame', 5, 150, nothing)
-cv2.createTrackbar('Max Radius Ball', 'Frame', 20, 150, nothing)
+cv2.createTrackbar('Min Radius Ball', 'Frame', 20, 150, nothing)
+cv2.createTrackbar('Max Radius Ball', 'Frame', 40, 150, nothing)
 
 
 # Mark's colors, red and black, for testing purposes only, red and yellow wasn't working
