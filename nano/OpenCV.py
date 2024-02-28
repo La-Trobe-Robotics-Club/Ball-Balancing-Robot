@@ -7,6 +7,14 @@ import time
 def nothing(x):
     pass
 
+def clamp(n, min, max): 
+    if n < min: 
+        return min
+    elif n > max: 
+        return max
+    else: 
+        return n 
+
 # Function to detect circles based on color
 def detect_circles(frame, lower_color, upper_color, min_radius, max_radius):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -33,6 +41,18 @@ def angle3pt(right_line, ball_point):
         np.arctan2(ball_point[1] - center[1], ball_point[0] - center[0]) - np.arctan2(right_point[1] - center[1], right_point[0] - center[0]))
     return ang + 360 if ang < 0 else ang
 
+# Calculate angle between lines point1 to point1 + (1,0), and point1 and point2
+def angle2pt(point1, point2):
+    return np.arctan2(point2[1] - point1[1], point2[0] - point1[0])
+
+# Calculate vector from point1 to point 2 with angle reference to the ray (1,0)
+def vector2pt(point1, point2):
+    angle = angle2pt(point1, point2)
+    distance = calculate_distance(point1, point2)
+    return [distance, angle]
+def motor_scale(vector, angle, radius):
+    return clamp(-clamp(vector[0],0,radius) * np.cos(vector[1] + angle), 0, radius) # quick fix by negative sign
+
 # Calculate an endpoint of a line given origin, degrees, and length)
 def calculate_line_endpoint(origin, degrees, length):
     angle_radians = np.radians(degrees)
@@ -40,13 +60,7 @@ def calculate_line_endpoint(origin, degrees, length):
     y2 = int(origin[1] + length * np.sin(angle_radians))
     return (x2, y2)
 
-def clamp(n, min, max): 
-    if n < min: 
-        return min
-    elif n > max: 
-        return max
-    else: 
-        return n 
+
 
 # Code starts here
 # Serial config
@@ -262,8 +276,10 @@ while True:
             cv2.circle(frame, ball_center, 2, (255, 255, 255), 3)  # Center point
             if print_output or serial_output:
                 dist_to_motors = []
+                ball_vector = vector2pt(trackbar_center, ball_center)
                 for e in segment_endpoints:
-                    dist_to_motors.append(calculate_distance(e, ball_center))
+                    dist_to_motors.append(motor_scale(ball_vector, angle2pt(trackbar_center, e), radius))
+                    print(f"{motor_scale(ball_vector, angle2pt(trackbar_center, e), radius)}")
                 motor_outputs = []
                 tilt_multiplier = cv2.getTrackbarPos('MaxTilt', 'Frame') / 255
                 kP = cv2.getTrackbarPos('kP', 'Frame') / 255
@@ -271,7 +287,7 @@ while True:
                 kD = cv2.getTrackbarPos('kD', 'Frame')
                 for i, dist in enumerate(dist_to_motors):
                     dist_percentage = dist / (radius * 2)
-                    proportional =  (kP * clamp(1 - dist_percentage, 0, 1) * 255) - 127
+                    proportional =  (kP * clamp(dist_percentage - 1, 0, 1) * 255) - 127
                     integral = kI * 0 #TODO
                     if derivative_update_time[i] == None:
                         derivative_update_time[i] = time.perf_counter_ns()
@@ -284,8 +300,8 @@ while True:
                     motor_output = clamp(proportional + integral + derivative, -127 , 127) * tilt_multiplier + 127 
                     motor_outputs.append(motor_output)
                 center_motor = int(motor_outputs[0])
-                left_motor = int(motor_outputs[2]) #was wrong way around
-                right_motor = int(motor_outputs[1]) #was wrong way around
+                left_motor = int(motor_outputs[1]) 
+                right_motor = int(motor_outputs[2]) 
                 if print_output:
                     print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4}")
                 if serial_output:
