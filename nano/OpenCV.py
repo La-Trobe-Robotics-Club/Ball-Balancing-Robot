@@ -2,6 +2,7 @@ import serial
 import cv2
 import numpy as np
 import platform
+import time
 
 def nothing(x):
     pass
@@ -96,21 +97,25 @@ else:
 ret, frame = cap.read()
 cv2.imshow('Frame', frame)
 # Create a trackbar to set the maximum angle of tilt and rotation of disc to align motors
-cv2.createTrackbar('MaxTilt', 'Frame', 0, 45, nothing) # Don't move until this slider is moved
+cv2.createTrackbar('MaxTilt', 'Frame', 0, 255, nothing) # Don't move until this slider is moved
 cv2.createTrackbar('Rotation', 'Frame', 90, 360, nothing)
 # Create a set of trackbars for manual adjustment of center
 cv2.createTrackbar('ManPosX', 'Frame', 400, 800, nothing)
 cv2.createTrackbar('ManPosY', 'Frame', 225, 450, nothing)
 cv2.createTrackbar('ManRadius', 'Frame', 205, 500, nothing)
+# Create a set of trackbars for PID
+cv2.createTrackbar('kP', 'Frame', 255, 255, nothing)
+cv2.createTrackbar('kI', 'Frame', 100, 1000, nothing)
+cv2.createTrackbar('kD', 'Frame', 200, 1000, nothing)
 # Create a set of trackbars for  HSV adjustment of center red disk
-cv2.createTrackbar('Lower Hue Disk', 'Frame', 0, 179, nothing)
-cv2.createTrackbar('Upper Hue Disk', 'Frame', 179, 179, nothing)
-cv2.createTrackbar('Lower Saturation Disk', 'Frame', 100, 255, nothing)
-cv2.createTrackbar('Upper Saturation Disk', 'Frame', 255, 255, nothing)
-cv2.createTrackbar('Lower Value Disk', 'Frame', 100, 255, nothing)
-cv2.createTrackbar('Upper Value Disk', 'Frame', 255, 255, nothing)
-cv2.createTrackbar('Min Radius Disk', 'Frame', 0, 150, nothing)
-cv2.createTrackbar('Max Radius Disk', 'Frame', 0, 150, nothing)
+# cv2.createTrackbar('Lower Hue Disk', 'Frame', 0, 179, nothing)
+# cv2.createTrackbar('Upper Hue Disk', 'Frame', 179, 179, nothing)
+# cv2.createTrackbar('Lower Saturation Disk', 'Frame', 100, 255, nothing)
+# cv2.createTrackbar('Upper Saturation Disk', 'Frame', 255, 255, nothing)
+# cv2.createTrackbar('Lower Value Disk', 'Frame', 100, 255, nothing)
+# cv2.createTrackbar('Upper Value Disk', 'Frame', 255, 255, nothing)
+# cv2.createTrackbar('Min Radius Disk', 'Frame', 0, 150, nothing)
+# cv2.createTrackbar('Max Radius Disk', 'Frame', 0, 150, nothing)
 
 # Create another set of trackbars for HSV adjustment for the ball
 # Calibrated for yellow ball in Les's bedroom
@@ -175,6 +180,9 @@ seg_size = 360 / NUM_MOTORS
 segment_angles = np.linspace(0,-360,NUM_MOTORS,endpoint=False)
 indexes_and_segment_angles = [(i, int(a)) for i, a in enumerate(segment_angles)]
 indexes_and_segment_angles.append((0, 360))
+
+last_dist = [None, None, None]
+derivative_update_time = [None, None, None]
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -230,7 +238,13 @@ while True:
             get_disc = False
     if not get_disc or calibrate_mode:
         # Draw averaged circle and center dot
-        
+        # Detect yellow circles
+        lower_yellow = np.array([cv2.getTrackbarPos('Lower Hue Ball', 'Frame'), cv2.getTrackbarPos('Lower Saturation Ball', 'Frame'), cv2.getTrackbarPos('Lower Value Ball', 'Frame')])
+        upper_yellow = np.array([cv2.getTrackbarPos('Upper Hue Ball', 'Frame'), cv2.getTrackbarPos('Upper Saturation Ball', 'Frame'), cv2.getTrackbarPos('Upper Value Ball', 'Frame')])
+        min_radius_yellow = cv2.getTrackbarPos('Min Radius Ball', 'Frame')
+        max_radius_yellow = cv2.getTrackbarPos('Max Radius Ball', 'Frame')
+        ball_circle = detect_circles(frame, lower_yellow, upper_yellow, min_radius_yellow, max_radius_yellow)
+
         # Draw lines representing the segments
         if not calibrate_mode:
             cv2.line(frame, disc_center, segment_endpoints[0], (0, 255, 0), 3) # Green
@@ -240,12 +254,7 @@ while True:
                 cv2.line(frame, disc_center, endpoint, (0, 0, 0), 3)
             cv2.circle(frame, disc_center, radius, (0, 255, 0), 2)
             cv2.circle(frame, disc_center, 2, (0, 0, 255), 3)
-        # Detect yellow circles
-        lower_yellow = np.array([cv2.getTrackbarPos('Lower Hue Ball', 'Frame'), cv2.getTrackbarPos('Lower Saturation Ball', 'Frame'), cv2.getTrackbarPos('Lower Value Ball', 'Frame')])
-        upper_yellow = np.array([cv2.getTrackbarPos('Upper Hue Ball', 'Frame'), cv2.getTrackbarPos('Upper Saturation Ball', 'Frame'), cv2.getTrackbarPos('Upper Value Ball', 'Frame')])
-        min_radius_yellow = cv2.getTrackbarPos('Min Radius Ball', 'Frame')
-        max_radius_yellow = cv2.getTrackbarPos('Max Radius Ball', 'Frame')
-        ball_circle = detect_circles(frame, lower_yellow, upper_yellow, min_radius_yellow, max_radius_yellow)
+
         if ball_circle is not None:
             ball_center = (int(ball_circle[0]), int(ball_circle[1]))
             ball_radius = ball_circle[2]
@@ -256,14 +265,29 @@ while True:
                 for e in segment_endpoints:
                     dist_to_motors.append(calculate_distance(e, ball_center))
                 motor_outputs = []
-                tilt_multiplier = cv2.getTrackbarPos('MaxTilt', 'Frame') / 45
-                for dist in dist_to_motors:
-                    motor_outputs.append(clamp(1 - dist / (radius * 2), 0, 1) * 255 * tilt_multiplier)
+                tilt_multiplier = cv2.getTrackbarPos('MaxTilt', 'Frame') / 255
+                kP = cv2.getTrackbarPos('kP', 'Frame') / 255
+                kI = cv2.getTrackbarPos('kI', 'Frame')
+                kD = cv2.getTrackbarPos('kD', 'Frame')
+                for i, dist in enumerate(dist_to_motors):
+                    dist_percentage = dist / (radius * 2)
+                    proportional =  (kP * clamp(1 - dist_percentage, 0, 1) * 255) - 127
+                    integral = kI * 0 #TODO
+                    if derivative_update_time[i] == None:
+                        derivative_update_time[i] = time.perf_counter_ns()
+                    if last_dist[i] != None:
+                        derivative = kD * (dist_percentage - last_dist[i]) * (derivative_update_time[i] - time.perf_counter_ns()) / 1000000
+                        derivative_update_time[i] = time.perf_counter_ns()
+                    else:
+                        derivative = 0
+                    last_dist[i] = dist_percentage
+                    motor_output = clamp(proportional + integral + derivative, -127 , 127) * tilt_multiplier + 127 
+                    motor_outputs.append(motor_output)
                 center_motor = int(motor_outputs[0])
                 left_motor = int(motor_outputs[2]) #was wrong way around
                 right_motor = int(motor_outputs[1]) #was wrong way around
                 if print_output:
-                    print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4} tilt multiplier:{tilt_multiplier:.2f}")
+                    print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4}")
                 if serial_output:
                     # Uncomment to make sure platform doesn't move if testing camera
                     # center_motor = 0
