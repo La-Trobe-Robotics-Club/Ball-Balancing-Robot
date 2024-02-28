@@ -98,10 +98,10 @@ ret, frame = cap.read()
 cv2.imshow('Frame', frame)
 # Create a trackbar to set the maximum angle of tilt and rotation of disc to align motors
 cv2.createTrackbar('MaxTilt', 'Frame', 0, 255, nothing) # Don't move until this slider is moved
-cv2.createTrackbar('Rotation', 'Frame', 225, 360, nothing)
+cv2.createTrackbar('Rotation', 'Frame', 220, 360, nothing)
 # Create a set of trackbars for manual adjustment of center
-cv2.createTrackbar('ManPosX', 'Frame', 359, 800, nothing)
-cv2.createTrackbar('ManPosY', 'Frame', 267, 450, nothing)
+cv2.createTrackbar('ManPosX', 'Frame', 350, 800, nothing)
+cv2.createTrackbar('ManPosY', 'Frame', 257, 450, nothing)
 cv2.createTrackbar('ManRadius', 'Frame', 180, 500, nothing)
 # Create a set of trackbars for PID
 cv2.createTrackbar('kP', 'Frame', 255, 255, nothing)
