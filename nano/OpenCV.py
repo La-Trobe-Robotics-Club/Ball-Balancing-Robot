@@ -152,6 +152,22 @@ cv2.createTrackbar('Max Radius Ball', 'Frame', 40, 150, nothing)
 # cv2.createTrackbar('Min Radius', 'Frame', 47, 150, nothing)
 # cv2.createTrackbar('Max Radius', 'Frame', 72, 150, nothing)
 
+cv2.createTrackbar("CAP_PROP_AUTOFOCUS", "Frame", 0, 1, nothing)
+cv2.createTrackbar("CAP_PROP_FOCUS", "Frame", 5, 255, nothing)
+cv2.createTrackbar("CAP_PROP_CONTRAST", "Frame", 128, 255, nothing)
+cv2.createTrackbar("CAP_PROP_BRIGHTNESS", "Frame", 128, 255, nothing)
+cv2.createTrackbar("CAP_PROP_SATURATION", "Frame", 128, 255, nothing)
+cv2.createTrackbar("CAP_PROP_EXPOSURE", "Frame", 511, 1023, nothing)
+'''
+cap.set(cv2.cv.CAP_PROP_AUTOFOCUS, 0.) 
+cap.set(cv2.cv.CAP_PROP_FOCUS, 5.)
+cap.set(cv2.cv.CAP_PROP_CONTRAST, 128.)
+cap.set(cv2.cv.CAP_PROP_BRIGHTNESS, 128.)
+cap.set(cv2.cv.CAP_PROP_SATURATION, 128.)
+cap.set(cv2.cv.CAP_PROP_CONVERT_RGB, 1.) 
+cap.set(cv2.cv.CAP_PROP_EXPOSURE, 511.) 
+'''
+
 get_disc = True
 calibrate_mode = False
 manual_mode = True
@@ -184,6 +200,13 @@ indexes_and_segment_angles.append((0, 360))
 last_dist = [None, None, None]
 derivative_update_time = [None, None, None]
 while True:
+    # set camera settings
+    cap.set(cv2.CAP_PROP_FOCUS, cv2.getTrackbarPos('CAP_PROP_FOCUS', 'Frame'))
+    cap.set(cv2.CAP_PROP_CONTRAST, cv2.getTrackbarPos('CAP_PROP_CONTRAST', 'Frame'))
+    cap.set(cv2.CAP_PROP_BRIGHTNESS, cv2.getTrackbarPos('CAP_PROP_BRIGHTNESS', 'Frame'))
+    cap.set(cv2.CAP_PROP_SATURATION, cv2.getTrackbarPos('CAP_PROP_SATURATION', 'Frame'))
+    cap.set(cv2.CAP_PROP_EXPOSURE, cv2.getTrackbarPos('CAP_PROP_EXPOSURE', 'Frame'))
+
     ret, frame = cap.read()
     if not ret:
         print("Failed to capture frame from camera. Check camera index and connection.")
