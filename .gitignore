@@ -1,3 +1,2 @@
-#Ignore libraries developers have in nano folder
-nano/*
-!nano/OpenCV.py
+# Rust
+/serial/target
