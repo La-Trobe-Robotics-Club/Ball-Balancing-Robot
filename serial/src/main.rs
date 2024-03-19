@@ -1,5 +1,12 @@
 use serialport::SerialPort;
-use std::os::unix::net::UnixListener; // Is this using uds_windows crate or not?
+
+#[cfg(target_family = "unix")]
+use std::os::unix::net::UnixListener;
+
+// note will only work on windows 10 build 17063+
+// see https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows
+#[cfg(target_family = "windows")]
+use uds_windows::UnixListener;
 
 struct ArduinoSerial {
     port: Box<dyn SerialPort>,
