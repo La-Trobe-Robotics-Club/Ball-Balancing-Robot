@@ -179,6 +179,8 @@ radius = -1
 rotation = 0
 DISC_AVG_SAMPLE_SIZE = 40
 NUM_MOTORS = 3
+ball_mom =[]
+mom_amount = 0
 
 force_multiplier = 0
 angle = 0
@@ -283,6 +285,16 @@ while True:
             ball_radius = ball_circle[2]
             cv2.circle(frame, ball_center, ball_radius, (0, 255, 255), 2)
             cv2.circle(frame, ball_center, 2, (255, 255, 255), 3)  # Center point
+            ball_mom.append(ball_center)
+            for cord_count in ball_mom :
+                mom_amount += 1
+            if mom_amount == 5:
+                ball_will = (ball_mom[0] + (ball_mom[5] - ball_mom [0]))
+                ball_mom.pop(0)
+                print(ball_will)
+                cv2.line(frame, ball_center, ball_will, (0, 0, 255), 3)
+                mom_amount -= 1
+
             if print_output or serial_output:
                 dist_to_motors = []
                 for e in segment_endpoints:
