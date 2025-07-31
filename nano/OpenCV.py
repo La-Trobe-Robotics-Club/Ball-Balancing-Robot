@@ -63,7 +63,7 @@ calibrated = False
 calibration_input = None
 arduino_calibration_output = None
 if serial_output_string == "y":
-    ser = serial.Serial('/dev/ttyUSB0')
+    ser = serial.Serial('COM9')
     # Wait for arduino to be ready
     print("Waiting for Arduino")
     ser.read_until("STARTED\r\n", 11)
@@ -90,23 +90,24 @@ platform_os = platform.system()
 
 # Start capturing video
 if platform_os == "Windows":
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(2, cv2.CAP_DSHOW)
 else:
     cap = cv2.VideoCapture(0)
 
 ret, frame = cap.read()
 cv2.imshow('Frame', frame)
+cv2.namedWindow('trackbar')
 # Create a trackbar to set the maximum angle of tilt and rotation of disc to align motors
-cv2.createTrackbar('MaxTilt', 'Frame', 0, 255, nothing) # Don't move until this slider is moved
-cv2.createTrackbar('Rotation', 'Frame', 220, 360, nothing)
+cv2.createTrackbar('MaxTilt', 'trackbar', 0, 255, nothing) # Don't move until this slider is moved
+cv2.createTrackbar('Rotation', 'trackbar', 220, 360, nothing)
 # Create a set of trackbars for manual adjustment of center
-cv2.createTrackbar('ManPosX', 'Frame', 350, 800, nothing)
-cv2.createTrackbar('ManPosY', 'Frame', 257, 450, nothing)
-cv2.createTrackbar('ManRadius', 'Frame', 180, 500, nothing)
+cv2.createTrackbar('ManPosX', 'trackbar', 350, 800, nothing)
+cv2.createTrackbar('ManPosY', 'trackbar', 257, 450, nothing)
+cv2.createTrackbar('ManRadius', 'trackbar', 180, 500, nothing)
 # Create a set of trackbars for PID
-cv2.createTrackbar('kP', 'Frame', 255, 255, nothing)
-cv2.createTrackbar('kI', 'Frame', 0, 1000, nothing)
-cv2.createTrackbar('kD', 'Frame', 0, 1000, nothing)
+cv2.createTrackbar('kP', 'trackbar', 255, 255, nothing)
+cv2.createTrackbar('kI', 'trackbar', 0, 1000, nothing)
+cv2.createTrackbar('kD', 'trackbar', 0, 1000, nothing)
 # Create a set of trackbars for  HSV adjustment of center red disk
 # cv2.createTrackbar('Lower Hue Disk', 'Frame', 0, 179, nothing)
 # cv2.createTrackbar('Upper Hue Disk', 'Frame', 179, 179, nothing)
@@ -119,14 +120,14 @@ cv2.createTrackbar('kD', 'Frame', 0, 1000, nothing)
 
 # Create another set of trackbars for HSV adjustment for the ball
 # Calibrated for yellow ball in Les's bedroom
-cv2.createTrackbar('Lower Hue Ball', 'Frame', 5, 179, nothing) 
-cv2.createTrackbar('Upper Hue Ball', 'Frame', 90, 179, nothing)
-cv2.createTrackbar('Lower Saturation Ball', 'Frame', 80, 255, nothing)
-cv2.createTrackbar('Upper Saturation Ball', 'Frame', 255, 255, nothing)
-cv2.createTrackbar('Lower Value Ball', 'Frame', 150, 255, nothing)
-cv2.createTrackbar('Upper Value Ball', 'Frame', 255, 255, nothing)
-cv2.createTrackbar('Min Radius Ball', 'Frame', 20, 150, nothing)
-cv2.createTrackbar('Max Radius Ball', 'Frame', 40, 150, nothing)
+cv2.createTrackbar('Lower Hue Ball', 'trackbar', 5, 179, nothing) 
+cv2.createTrackbar('Upper Hue Ball', 'trackbar', 90, 179, nothing)
+cv2.createTrackbar('Lower Saturation Ball', 'trackbar', 80, 255, nothing)
+cv2.createTrackbar('Upper Saturation Ball', 'trackbar', 255, 255, nothing)
+cv2.createTrackbar('Lower Value Ball', 'trackbar', 150, 255, nothing)
+cv2.createTrackbar('Upper Value Ball', 'trackbar', 255, 255, nothing)
+cv2.createTrackbar('Min Radius Ball', 'trackbar', 20, 150, nothing)
+cv2.createTrackbar('Max Radius Ball', 'trackbar', 40, 150, nothing)
 
 
 # Mark's colors, red and black, for testing purposes only, red and yellow wasn't working
@@ -152,12 +153,12 @@ cv2.createTrackbar('Max Radius Ball', 'Frame', 40, 150, nothing)
 # cv2.createTrackbar('Min Radius', 'Frame', 47, 150, nothing)
 # cv2.createTrackbar('Max Radius', 'Frame', 72, 150, nothing)
 
-cv2.createTrackbar("CAP_PROP_AUTOFOCUS", "Frame", 0, 1, nothing)
-cv2.createTrackbar("CAP_PROP_FOCUS", "Frame", 5, 255, nothing)
-cv2.createTrackbar("CAP_PROP_CONTRAST", "Frame", 128, 255, nothing)
-cv2.createTrackbar("CAP_PROP_BRIGHTNESS", "Frame", 128, 255, nothing)
-cv2.createTrackbar("CAP_PROP_SATURATION", "Frame", 128, 255, nothing)
-cv2.createTrackbar("CAP_PROP_EXPOSURE", "Frame", 511, 1023, nothing)
+cv2.createTrackbar("CAP_PROP_AUTOFOCUS", 'trackbar', 0, 1, nothing)
+cv2.createTrackbar("CAP_PROP_FOCUS", 'trackbar', 5, 255, nothing)
+cv2.createTrackbar("CAP_PROP_CONTRAST", 'trackbar', 128, 255, nothing)
+cv2.createTrackbar("CAP_PROP_BRIGHTNESS", 'trackbar', 128, 255, nothing)
+cv2.createTrackbar("CAP_PROP_SATURATION", 'trackbar', 128, 255, nothing)
+cv2.createTrackbar("CAP_PROP_EXPOSURE", 'trackbar', 511, 1023, nothing)
 '''
 cap.set(cv2.cv.CAP_PROP_AUTOFOCUS, 0.) 
 cap.set(cv2.cv.CAP_PROP_FOCUS, 5.)
@@ -203,20 +204,20 @@ last_dist = [None, None, None]
 derivative_update_time = [None, None, None]
 while True:
     # set camera settings
-    cap.set(cv2.CAP_PROP_FOCUS, cv2.getTrackbarPos('CAP_PROP_FOCUS', 'Frame'))
-    cap.set(cv2.CAP_PROP_CONTRAST, cv2.getTrackbarPos('CAP_PROP_CONTRAST', 'Frame'))
-    cap.set(cv2.CAP_PROP_BRIGHTNESS, cv2.getTrackbarPos('CAP_PROP_BRIGHTNESS', 'Frame'))
-    cap.set(cv2.CAP_PROP_SATURATION, cv2.getTrackbarPos('CAP_PROP_SATURATION', 'Frame'))
-    cap.set(cv2.CAP_PROP_EXPOSURE, cv2.getTrackbarPos('CAP_PROP_EXPOSURE', 'Frame'))
+    cap.set(cv2.CAP_PROP_FOCUS, cv2.getTrackbarPos('CAP_PROP_FOCUS', 'trackbar'))
+    cap.set(cv2.CAP_PROP_CONTRAST, cv2.getTrackbarPos('CAP_PROP_CONTRAST', 'trackbar'))
+    cap.set(cv2.CAP_PROP_BRIGHTNESS, cv2.getTrackbarPos('CAP_PROP_BRIGHTNESS', 'trackbar'))
+    cap.set(cv2.CAP_PROP_SATURATION, cv2.getTrackbarPos('CAP_PROP_SATURATION', 'trackbar'))
+    cap.set(cv2.CAP_PROP_EXPOSURE, cv2.getTrackbarPos('CAP_PROP_EXPOSURE', 'trackbar'))
 
     ret, frame = cap.read()
     if not ret:
         print("Failed to capture frame from camera. Check camera index and connection.")
         break
     if manual_mode:
-        trackbar_radius = cv2.getTrackbarPos('ManRadius', 'Frame')
-        trackbar_center = (cv2.getTrackbarPos('ManPosX', 'Frame'), cv2.getTrackbarPos('ManPosY', 'Frame'))
-        trackbar_rotation = cv2.getTrackbarPos('Rotation', 'Frame')
+        trackbar_radius = cv2.getTrackbarPos('ManRadius', 'trackbar')
+        trackbar_center = (cv2.getTrackbarPos('ManPosX', 'trackbar'), cv2.getTrackbarPos('ManPosY', 'trackbar'))
+        trackbar_rotation = cv2.getTrackbarPos('Rotation', 'trackbar')
         if trackbar_radius != radius or trackbar_center != disc_center or trackbar_rotation != rotation:
             radius = trackbar_radius
             disc_center = trackbar_center
@@ -232,10 +233,10 @@ while True:
         get_disc = False
     elif get_disc or calibrate_mode:
         # Get trackbar positions for red detections
-        lower_red = np.array([cv2.getTrackbarPos('Lower Hue Disk', 'Frame'), cv2.getTrackbarPos('Lower Saturation Disk', 'Frame'), cv2.getTrackbarPos('Lower Value Disk', 'Frame')])
-        upper_red = np.array([cv2.getTrackbarPos('Upper Hue Disk', 'Frame'), cv2.getTrackbarPos('Upper Saturation Disk', 'Frame'), cv2.getTrackbarPos('Upper Value Disk', 'Frame')])
-        min_radius_red = cv2.getTrackbarPos('Min Radius Disk', 'Frame')
-        max_radius_red = cv2.getTrackbarPos('Max Radius Disk', 'Frame')
+        lower_red = np.array([cv2.getTrackbarPos('Lower Hue Disk', 'trackbar'), cv2.getTrackbarPos('Lower Saturation Disk', 'trackbar'), cv2.getTrackbarPos('Lower Value Disk', 'trackbar')])
+        upper_red = np.array([cv2.getTrackbarPos('Upper Hue Disk', 'trackbar'), cv2.getTrackbarPos('Upper Saturation Disk', 'trackbar'), cv2.getTrackbarPos('Upper Value Disk', 'trackbar')])
+        min_radius_red = cv2.getTrackbarPos('Min Radius Disk', 'trackbar')
+        max_radius_red = cv2.getTrackbarPos('Max Radius Disk', 'trackbar')
         # Detect red circles
         red_circle = detect_circles(frame, lower_red, upper_red, min_radius_red, max_radius_red)
         if red_circle is not None:
@@ -255,7 +256,7 @@ while True:
             
             endpoint_right = calculate_line_endpoint(disc_center, segment_angles[0], radius)
             right_line = (disc_center, endpoint_right)
-            trackbar_rotation = cv2.getTrackbarPos('Rotation', 'Frame')
+            trackbar_rotation = cv2.getTrackbarPos('Rotation', 'trackbar')
             rotation = trackbar_rotation
             for a in segment_angles:
                 segment_endpoints.append(calculate_line_endpoint(disc_center, a+rotation, radius))
@@ -264,10 +265,10 @@ while True:
     if not get_disc or calibrate_mode:
         # Draw averaged circle and center dot
         # Detect yellow circles
-        lower_yellow = np.array([cv2.getTrackbarPos('Lower Hue Ball', 'Frame'), cv2.getTrackbarPos('Lower Saturation Ball', 'Frame'), cv2.getTrackbarPos('Lower Value Ball', 'Frame')])
-        upper_yellow = np.array([cv2.getTrackbarPos('Upper Hue Ball', 'Frame'), cv2.getTrackbarPos('Upper Saturation Ball', 'Frame'), cv2.getTrackbarPos('Upper Value Ball', 'Frame')])
-        min_radius_yellow = cv2.getTrackbarPos('Min Radius Ball', 'Frame')
-        max_radius_yellow = cv2.getTrackbarPos('Max Radius Ball', 'Frame')
+        lower_yellow = np.array([cv2.getTrackbarPos('Lower Hue Ball', 'trackbar'), cv2.getTrackbarPos('Lower Saturation Ball', 'trackbar'), cv2.getTrackbarPos('Lower Value Ball', 'trackbar')])
+        upper_yellow = np.array([cv2.getTrackbarPos('Upper Hue Ball', 'trackbar'), cv2.getTrackbarPos('Upper Saturation Ball', 'trackbar'), cv2.getTrackbarPos('Upper Value Ball', 'trackbar')])
+        min_radius_yellow = cv2.getTrackbarPos('Min Radius Ball', 'trackbar')
+        max_radius_yellow = cv2.getTrackbarPos('Max Radius Ball', 'trackbar')
         ball_circle = detect_circles(frame, lower_yellow, upper_yellow, min_radius_yellow, max_radius_yellow)
 
         # Draw lines representing the segments
@@ -300,10 +301,10 @@ while True:
                 for e in segment_endpoints:
                     dist_to_motors.append(calculate_distance(e, ball_center))
                 motor_outputs = []
-                tilt_multiplier = cv2.getTrackbarPos('MaxTilt', 'Frame') / 255
-                kP = cv2.getTrackbarPos('kP', 'Frame') / 255
-                kI = cv2.getTrackbarPos('kI', 'Frame')
-                kD = cv2.getTrackbarPos('kD', 'Frame')
+                tilt_multiplier = cv2.getTrackbarPos('MaxTilt', 'trackbar') / 255
+                kP = cv2.getTrackbarPos('kP', 'trackbar') / 255
+                kI = cv2.getTrackbarPos('kI', 'trackbar')
+                kD = cv2.getTrackbarPos('kD', 'trackbar')
                 for i, dist in enumerate(dist_to_motors):
                     dist_percentage = dist / (radius * 2)
                     proportional =  (kP * clamp(1 - dist_percentage, 0, 1) * 255) - 127
