@@ -3,6 +3,49 @@ import cv2
 import numpy as np
 import platform
 import time
+import math
+
+#ADD SECOND PARAMETER
+#def activate_motors(ball_direction_degrees, power):
+#    angle = ball_direction_degrees % 360
+#    section = int(angle // 60) + 1
+#    
+#    #REPLACE EACH print() with a call to each motor, parsing power
+#    if section == 1:
+#        print(f"MOTOR1 {power}")
+#        center_motor = int(power) #1
+#    elif section == 2:
+#        print(f"MOTOR1 {power}", end="")
+#        center_motor = int(power) #1
+#        print(f" MOTOR3 {power}")
+#        right_motor = int(power) #3
+#    elif section == 3:
+#        print(f"MOTOR3 {power}")
+#        right_motor = int(power) #3
+#    elif section == 4:
+#        print(f"MOTOR3 {power}", end="")
+#        right_motor = int(power) #3
+#        print(f" MOTOR5 {power}")
+#        left_motor = int(power) #5
+#    elif section == 5:
+#        print(f"MOTOR5 {power}", end="")
+#        left_motor = int(power) #5
+#    elif section == 6:
+#        print(f"MOTOR5 {power}", end="")
+#        left_motor = int(power) #5
+#        print(f" MOTOR1 {power}")
+#        center_motor = int(power) #1
+
+#exponentially returns a % power for the motor to activate at the less time the ball has from the edge
+def get_edge_elevation(time_to_edge):
+    if time_to_edge <= 1:
+        return 100
+    if time_to_edge >= 8:
+        return 0
+    decay_base = 0.5
+    elapsed_steps = time_to_edge - 1
+    return 100 * (decay_base ** elapsed_steps)
+
 
 def nothing(x):
     pass
@@ -63,7 +106,8 @@ calibrated = False
 calibration_input = None
 arduino_calibration_output = None
 if serial_output_string == "y":
-    ser = serial.Serial('COM9')
+    #ser = serial.Serial('/dev/ttyUSB0')
+    ser = serial.Serial('COM8')
     # Wait for arduino to be ready
     print("Waiting for Arduino")
     ser.read_until("STARTED\r\n", 11)
@@ -319,6 +363,10 @@ while True:
                     last_dist[i] = dist_percentage
                     motor_output = clamp(proportional + integral + derivative, -127 , 127) * tilt_multiplier + 127 
                     motor_outputs.append(motor_output)
+                   
+                
+                ####THIS NEEDS TO GO HERE SOMEWHERE########
+                #activate_motors(ball_direction_degrees,get_edge_elevation(ball_time_to_edge))
                 center_motor = int(motor_outputs[0])
                 left_motor = int(motor_outputs[2]) #was wrong way around
                 right_motor = int(motor_outputs[1]) #was wrong way around
