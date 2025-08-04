@@ -5,36 +5,91 @@ import platform
 import time
 import math
 
-#ADD SECOND PARAMETER
-#def activate_motors(ball_direction_degrees, power):
-#    angle = ball_direction_degrees % 360
-#    section = int(angle // 60) + 1
-#    
-#    #REPLACE EACH print() with a call to each motor, parsing power
-#    if section == 1:
-#        print(f"MOTOR1 {power}")
-#        center_motor = int(power) #1
-#    elif section == 2:
-#        print(f"MOTOR1 {power}", end="")
-#        center_motor = int(power) #1
-#        print(f" MOTOR3 {power}")
-#        right_motor = int(power) #3
-#    elif section == 3:
-#        print(f"MOTOR3 {power}")
-#        right_motor = int(power) #3
-#    elif section == 4:
-#        print(f"MOTOR3 {power}", end="")
-#        right_motor = int(power) #3
-#        print(f" MOTOR5 {power}")
-#        left_motor = int(power) #5
-#    elif section == 5:
-#        print(f"MOTOR5 {power}", end="")
-#        left_motor = int(power) #5
-#    elif section == 6:
-#        print(f"MOTOR5 {power}", end="")
-#        left_motor = int(power) #5
-#        print(f" MOTOR1 {power}")
-#        center_motor = int(power) #1
+#ChatGPT overengineering a drawline
+def draw_motion_and_edge_line(frame, ball_prev, ball_curr, disc_center, radius):
+    # Calculate the motion vector from previous to current ball position
+    dx = ball_curr[0] - ball_prev[0]
+    dy = ball_curr[1] - ball_prev[1]
+    dist_moved = math.sqrt(dx**2 + dy**2)
+    if dist_moved == 0:
+        return 0  # No motion, no line
+
+    # Draw line from previous to current ball position (motion line)
+    cv2.line(frame, ball_prev, ball_curr, (255, 0, 255), 2)
+
+    # Calculate motion angle in radians
+    angle = math.atan2(dy, dx)
+
+    # Vector from disc center to current ball position
+    cx, cy = disc_center
+    bx, by = ball_curr
+    rel_x = bx - cx
+    rel_y = by - cy
+
+    # Quadratic coefficients for intersection of motion line with circle edge
+    vx = math.cos(angle)
+    vy = math.sin(angle)
+    a = vx**2 + vy**2
+    b = 2 * (rel_x * vx + rel_y * vy)
+    c = rel_x**2 + rel_y**2 - radius**2
+
+    discriminant = b**2 - 4 * a * c
+    if discriminant < 0:
+        # No intersection, ball moving away from circle edge
+        return 0
+
+    sqrt_disc = math.sqrt(discriminant)
+    t1 = (-b + sqrt_disc) / (2 * a)
+    t2 = (-b - sqrt_disc) / (2 * a)
+
+    # We want the positive t that extends **forward** from the ball's current position
+    ts = [t for t in [t1, t2] if t >= 0]
+    if not ts:
+        return 0  # No forward intersection
+
+    t_edge = min(ts)
+
+    # Calculate intersection point (edge point) along motion vector
+    edge_x = bx + vx * t_edge
+    edge_y = by + vy * t_edge
+    edge_point = (int(edge_x), int(edge_y))
+
+    # Draw line from current ball position to edge of large circle
+    cv2.line(frame, ball_curr, edge_point, (0, 255, 255), 2)
+
+    # Return the length of this extension (distance from ball to edge)
+    extension_length = math.sqrt((edge_x - bx)**2 + (edge_y - by)**2)
+    return extension_length
+
+def activate_motors(ball_direction_degrees, power):
+    angle = ball_direction_degrees % 360
+    section = int(angle // 60) + 1
+    
+    #REPLACE EACH print() with a call to each motor, parsing power
+    if section == 1:
+        print(f"MOTOR1 {power}")
+        center_motor = int(power) #1
+    elif section == 2:
+        print(f"MOTOR1 {power}", end="")
+        center_motor = int(power) #1
+        print(f" MOTOR3 {power}")
+        right_motor = int(power) #3
+    elif section == 3:
+        print(f"MOTOR3 {power}")
+        right_motor = int(power) #3
+    elif section == 4:
+        print(f"MOTOR3 {power}", end="")
+        right_motor = int(power) #3
+        print(f" MOTOR5 {power}")
+        left_motor = int(power) #5
+    elif section == 5:
+        print(f"MOTOR5 {power}", end="")
+        left_motor = int(power) #5
+    elif section == 6:
+        print(f"MOTOR5 {power}", end="")
+        left_motor = int(power) #5
+        print(f" MOTOR1 {power}")
+        center_motor = int(power) #1
 
 #exponentially returns a % power for the motor to activate at the less time the ball has from the edge
 def get_edge_elevation(time_to_edge):
@@ -244,6 +299,9 @@ segment_angles = np.linspace(0,-360,NUM_MOTORS,endpoint=False)
 indexes_and_segment_angles = [(i, int(a)) for i, a in enumerate(segment_angles)]
 indexes_and_segment_angles.append((0, 360))
 
+last_ball_center = None
+last_ball_time = None
+
 last_dist = [None, None, None]
 derivative_update_time = [None, None, None]
 while True:
@@ -365,11 +423,48 @@ while True:
                     motor_outputs.append(motor_output)
                    
                 
-                ####THIS NEEDS TO GO HERE SOMEWHERE########
-                #activate_motors(ball_direction_degrees,get_edge_elevation(ball_time_to_edge))
+                
                 center_motor = int(motor_outputs[0])
                 left_motor = int(motor_outputs[2]) #was wrong way around
                 right_motor = int(motor_outputs[1]) #was wrong way around
+                
+                
+                
+                ####THIS NEEDS TO GO HERE SOMEWHERE########
+                current_time = time.time()  # current time in seconds (float)
+                velocity = None
+                angle_degrees = None
+                extension_len = None
+
+                if last_ball_center is not None and last_ball_time is not None:
+                    dx = ball_center[0] - last_ball_center[0]
+                    dy = ball_center[1] - last_ball_center[1]
+                    distance_moved = math.sqrt(dx**2 + dy**2)
+                    time_delta = current_time - last_ball_time
+                
+                
+                    velocity = distance_moved / time_delta
+                    print(f"Ball moved {distance_moved:.2f} pixels in {time_delta:.3f} seconds")
+                    print(f"Velocity: {velocity:.2f} pixels/sec")
+                    
+                    dx = ball_center[0] - last_ball_center[0]
+                    dy = ball_center[1] - last_ball_center[1]
+                    angle_radians = math.atan2(dy, dx)
+                    angle_degrees = (math.degrees(math.atan2(dy, dx)) + 360) % 360
+                    
+                    print(f"Direction of ball motion: {angle_degrees:.2f} degrees")
+                
+                
+                last_ball_center = ball_center
+                last_ball_time = current_time
+                
+                if last_ball_center is not None and ball_center is not None:
+                    extension_len = draw_motion_and_edge_line(frame, last_ball_center, ball_center, disc_center, radius)
+                    print(f"Extension line length to edge: {extension_len:.2f} pixels")
+                activate_motors(angle_degrees,get_edge_elevation(extension_len))
+                ####THIS NEEDS TO GO HERE SOMEWHERE########
+                
+                
                 if print_output:
                     print(f"center:{str(center_motor):<4} left:{str(left_motor):<4} right:{str(right_motor):<4}")
                 if serial_output:
