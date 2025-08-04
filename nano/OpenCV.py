@@ -134,7 +134,7 @@ platform_os = platform.system()
 
 # Start capturing video
 if platform_os == "Windows":
-    cap = cv2.VideoCapture(2, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(3, cv2.CAP_DSHOW)
 else:
     cap = cv2.VideoCapture(0)
 
@@ -143,11 +143,11 @@ cv2.imshow('Frame', frame)
 cv2.namedWindow('trackbar')
 # Create a trackbar to set the maximum angle of tilt and rotation of disc to align motors
 cv2.createTrackbar('MaxTilt', 'trackbar', 0, 255, nothing) # Don't move until this slider is moved
-cv2.createTrackbar('Rotation', 'trackbar', 220, 360, nothing)
+cv2.createTrackbar('Rotation', 'trackbar', 149, 360, nothing)
 # Create a set of trackbars for manual adjustment of center
-cv2.createTrackbar('ManPosX', 'trackbar', 350, 800, nothing)
-cv2.createTrackbar('ManPosY', 'trackbar', 257, 450, nothing)
-cv2.createTrackbar('ManRadius', 'trackbar', 180, 500, nothing)
+cv2.createTrackbar('ManPosX', 'trackbar', 278, 800, nothing)
+cv2.createTrackbar('ManPosY', 'trackbar', 169, 450, nothing)
+cv2.createTrackbar('ManRadius', 'trackbar', 292, 500, nothing)
 # Create a set of trackbars for PID
 cv2.createTrackbar('kP', 'trackbar', 255, 255, nothing)
 cv2.createTrackbar('kI', 'trackbar', 0, 1000, nothing)
@@ -168,10 +168,10 @@ cv2.createTrackbar('Lower Hue Ball', 'trackbar', 5, 179, nothing)
 cv2.createTrackbar('Upper Hue Ball', 'trackbar', 90, 179, nothing)
 cv2.createTrackbar('Lower Saturation Ball', 'trackbar', 80, 255, nothing)
 cv2.createTrackbar('Upper Saturation Ball', 'trackbar', 255, 255, nothing)
-cv2.createTrackbar('Lower Value Ball', 'trackbar', 150, 255, nothing)
+cv2.createTrackbar('Lower Value Ball', 'trackbar', 59, 255, nothing)
 cv2.createTrackbar('Upper Value Ball', 'trackbar', 255, 255, nothing)
 cv2.createTrackbar('Min Radius Ball', 'trackbar', 20, 150, nothing)
-cv2.createTrackbar('Max Radius Ball', 'trackbar', 40, 150, nothing)
+cv2.createTrackbar('Max Radius Ball', 'trackbar', 60, 150, nothing)
 
 
 # Mark's colors, red and black, for testing purposes only, red and yellow wasn't working
