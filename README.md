@@ -1,5 +1,5 @@
 # Orientation-week-showcase-project
-
+Plese use python 3.12 or greater.
 ## OpenCV requirements
 ### python
 ### python-opencv
